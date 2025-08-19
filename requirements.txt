@@ -12,3 +12,4 @@ phonenumbers
 ruff
 pytest
 jinja2
+pydantic

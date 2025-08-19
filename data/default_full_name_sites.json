@@ -1,0 +1,41 @@
+[
+    {
+        "country": "Sweden",
+        "country_code": "SE",
+        "sites": [
+            {
+                "id": "ratsit_v1",
+                "name": "Ratsit",
+                "homeUrl": "https://www.ratsit.se",
+                "urlTemplate": "https://www.ratsit.se/sok/person?who={query}",
+                "placeholders": ["query"],
+                "urlEncode": true,
+                "method": "GET",
+                "headers": {
+                    "User-Agent": "osint-tool/1.0"
+                },
+                "responseType": "html",
+                "requiresJs": false,
+                "noResult": { "type": "contains", "value": "Inga träffar" },
+                "resultMatcher": { "type": "css", "value": ".search-results .person" },
+                "extract": {
+                    "recordsSelector": ".search-results .person",
+                    "fields": {
+                        "name": { "type": "css", "value": ".name", "multiple": false },
+                        "age": { "type": "regex", "value": "(\d+) år" },
+                        "address": { "type": "css", "value": ".address" }
+                    }
+                },
+                "pagination": { "type": "param", "paramName": "page", "start": 1, "maxPages": 2 },
+                "rateLimitPerMinute": 30,
+                "timeoutSeconds": 10,
+                "retries": 2,
+                "lastVerified": "2025-08-01T00:00:00Z",
+                "active": true,
+                "legal": { "allowed": null, "note": "Check robots/TOS for commercial scraping" },
+                "tags": ["people", "phone", "directory"],
+                "notes": "Use query = 'First Last' or SSN when available"
+            }
+        ]
+    }
+]

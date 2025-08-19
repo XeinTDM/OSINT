@@ -1,41 +1,34 @@
-from dataclasses import dataclass, field
 from typing import Optional, List, Dict
+from pydantic import BaseModel, Field
 
-@dataclass
-class NoResult:
+class NoResult(BaseModel):
     type: str
     value: str
 
-@dataclass
-class ResultMatcher:
+class ResultMatcher(BaseModel):
     type: str
     value: str
 
-@dataclass
-class FieldExtraction:
+class FieldExtraction(BaseModel):
     type: str
     value: str
     multiple: bool = False
 
-@dataclass
-class Extraction:
+class Extraction(BaseModel):
     recordsSelector: str
     fields: Dict[str, FieldExtraction]
 
-@dataclass
-class Pagination:
+class Pagination(BaseModel):
     type: str
     paramName: str
     start: int
     maxPages: int
 
-@dataclass
-class Legal:
+class Legal(BaseModel):
     allowed: Optional[bool] = None
     note: Optional[str] = None
 
-@dataclass
-class Site:
+class Site(BaseModel):
     id: str
     name: str
     homeUrl: str
@@ -46,7 +39,7 @@ class Site:
     responseType: str
     requiresJs: bool
     noResult: NoResult
-    headers: Dict[str, str] = field(default_factory=dict)
+    headers: Dict[str, str] = Field(default_factory=dict)
     resultMatcher: Optional[ResultMatcher] = None
     extract: Optional[Extraction] = None
     pagination: Optional[Pagination] = None
@@ -56,12 +49,11 @@ class Site:
     lastVerified: Optional[str] = None
     active: bool = True
     legal: Optional[Legal] = None
-    tags: List[str] = field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
     notes: Optional[str] = None
-    advanced_placeholders: List[str] = field(default_factory=list)
+    advanced_placeholders: List[str] = Field(default_factory=list)
 
-@dataclass
-class CountrySites:
+class CountrySites(BaseModel):
     country: str
     sites: List[Site]
     country_code: Optional[str] = None

@@ -28,30 +28,34 @@ def mock_sites_json_paths(tmp_path):
 
 @pytest.mark.asyncio
 async def test_ensure_sites_json_exists_creates_files_if_not_found(mock_sites_json_paths):
-    
     mock_file_sites_write = mock_open()
     mock_file_full_name_write = mock_open()
 
+    mock_default_username_content = {"username_sites": []}
+    mock_default_full_name_content = [{"country": "Default", "sites": []}]
+
     with (
-        patch("os.path.exists", side_effect=[False, False]),
+        patch("os.path.exists", side_effect=[False, False, True, True]), # First two for initial check, next two for default file existence
         patch("builtins.open") as mocked_open,
         patch("os.makedirs"),
         patch("aiohttp.ClientSession", side_effect=aiohttp.ClientError("Simulated network error")),
         patch.object(SitesManager, "update_sites_json_from_url", new_callable=AsyncMock) as mock_update_username_sites,
-        patch.object(SitesManager, "update_full_name_sites_json_from_url", new_callable=AsyncMock),
-        patch.object(SitesManager, "_load_sites_data")
+        patch.object(SitesManager, "update_full_name_sites_json_from_url", new_callable=AsyncMock) as mock_update_full_name_sites,
     ):
         mocked_open.side_effect = [
-            mock_file_sites_write.return_value,
-            mock_file_full_name_write.return_value
+            mock_file_sites_write.return_value, # For writing default sites.json
+            mock_file_full_name_write.return_value, # For writing default full_name_sites.json
+            mock_open(read_data=json.dumps(mock_default_username_content)).return_value, # For reading default sites.json
+            mock_open(read_data=json.dumps(mock_default_full_name_content)).return_value # For reading default full_name_sites.json
         ]
         manager = SitesManager()
 
         await manager.ensure_sites_json_exists()
         mock_update_username_sites.assert_called_once()
-        
-        assert manager._username_sites_data == []
-        assert manager._full_name_sites_data == []
+        mock_update_full_name_sites.assert_called_once()
+
+        assert manager._username_sites_data == mock_default_username_content["username_sites"]
+        assert manager._full_name_sites_data == [CountrySites.model_validate(d) for d in mock_default_full_name_content]
 
 @pytest.mark.asyncio
 async def test_ensure_sites_json_exists_loads_existing_files(mock_sites_json_paths):
@@ -97,6 +101,45 @@ async def test_ensure_sites_json_exists_handles_json_decode_error(mock_sites_jso
         assert manager._full_name_sites_data == []
 
 @pytest.mark.asyncio
+async def test_parse_full_name_sites_data_with_validation_error(mock_sites_json_paths):
+    manager = SitesManager()
+    invalid_data = [
+        {"country": "Invalid", "sites": [{"id": "missing_name"}]} # Missing 'name' field
+    ]
+
+    with patch("modules.sites_manager.logger.error") as mock_logger_error:
+        parsed_data = manager._parse_full_name_sites_data(invalid_data)
+        assert parsed_data == []
+        mock_logger_error.assert_called_once()
+        assert "Validation error parsing country data" in mock_logger_error.call_args[0][0]
+
+@pytest.mark.asyncio
+async def test_create_default_full_name_sites_json_reads_from_default_file(mock_sites_json_paths):
+    manager = SitesManager()
+    mock_default_content = [{"country": "Default", "sites": []}]
+
+    with (
+        patch("builtins.open", new_callable=mock_open) as mocked_open,
+        patch("os.makedirs"),
+        patch("os.path.exists", return_value=True) # Simulate default file exists
+    ):
+        # Mock reading from the default file
+        mocked_open.side_effect = [
+            mock_open(read_data=json.dumps(mock_default_content)).return_value, # For reading default
+            mock_open().return_value # For writing to actual path
+        ]
+        manager._create_default_full_name_sites_json()
+
+        # Verify that the default file was read
+        mocked_open.assert_any_call(paths.DEFAULT_FULL_NAME_SITES_JSON_PATH, "r", encoding="utf-8")
+
+        # Verify that the content was written to the correct path
+        mocked_open.assert_any_call(paths.FULL_NAME_SITES_JSON_PATH, "w", encoding="utf-8")
+        handle = mocked_open()
+        written_content = "".join(call_args.args[0] for call_args in handle.write.call_args_list)
+        assert json.loads(written_content) == mock_default_content
+
+@pytest.mark.asyncio
 async def test_update_sites_json_from_url_success(mock_sites_json_paths):
     mock_response_text = json.dumps({"username_sites": [{"name": "new_site", "url": "http://new.com"}]}, indent=2)
 
@@ -117,7 +160,6 @@ async def test_update_sites_json_from_url_success(mock_sites_json_paths):
         patch("aiohttp.ClientSession", return_value=mock_session_context),
         patch("builtins.open", mock_open()) as mocked_open,
         patch("os.makedirs"),
-        patch.object(SitesManager, "_load_sites_data")
     ):
         manager = SitesManager()
         result = await manager.update_sites_json_from_url()
@@ -151,7 +193,6 @@ async def test_update_full_name_sites_json_from_url_success(mock_sites_json_path
         patch("aiohttp.ClientSession", return_value=mock_session_context),
         patch("builtins.open", mock_open()) as mocked_open,
         patch("os.makedirs"),
-        patch.object(SitesManager, "_load_sites_data")
     ):
         manager = SitesManager()
         result = await manager.update_full_name_sites_json_from_url("http://example.com/full_name_sites.json")
@@ -182,7 +223,6 @@ async def test_update_sites_json_from_url_client_error(mock_sites_json_paths):
     with (
         patch("aiohttp.ClientSession", return_value=mock_session_context),
         patch("modules.sites_manager.logger.error") as mock_logger_error,
-        patch.object(SitesManager, "_load_sites_data")
     ):
         manager = SitesManager()
         result = await manager.update_sites_json_from_url()
@@ -208,7 +248,6 @@ async def test_update_sites_json_from_url_unexpected_error(mock_sites_json_paths
     with (
         patch("aiohttp.ClientSession", return_value=mock_session_context),
         patch("modules.sites_manager.logger.error") as mock_logger_error,
-        patch.object(SitesManager, "_load_sites_data")
     ):
         manager = SitesManager()
         result = await manager.update_sites_json_from_url()

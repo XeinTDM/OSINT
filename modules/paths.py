@@ -10,3 +10,4 @@ import os
 
 SITES_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "sites.json")
 FULL_NAME_SITES_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "full_name_sites.json")
+DEFAULT_FULL_NAME_SITES_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "default_full_name_sites.json")

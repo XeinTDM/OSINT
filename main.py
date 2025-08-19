@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 
 async def main_menu():
     """Displays the main menu and handles user choices."""
-    await sites_manager.ensure_sites_json_exists()
-    print_banner()
     while True:
         choice = await get_main_menu_choice()
 
@@ -32,6 +30,8 @@ async def main_menu():
 def main():
     """Main entry point for the OSINT Tool."""
     try:
+        asyncio.run(sites_manager.ensure_sites_json_exists())
+        print_banner()
         asyncio.run(main_menu())
     except KeyboardInterrupt:
         print("\n\nInterrupted by user. Exiting...")
