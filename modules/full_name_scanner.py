@@ -22,9 +22,21 @@ class FullNameScanner(BaseScanner):
 
     NAME: str = "Full Name Scan"
 
-    async def scan(self, full_name: str, country: str, **kwargs) -> Dict[str, Any]:
-        self.progress.update(self.task_id, description=f"[bold yellow]Scanning full name: {full_name} in {country}...[/bold yellow]")
-        results = {"full_name": full_name, "country": country, "found_on": [], "errors": []}
+    async def scan(self, target: str, **kwargs) -> Dict[str, Any]:
+        full_name = kwargs.get("full_name", "")
+        first_name = kwargs.get("first_name", "")
+        middle_name = kwargs.get("middle_name", "")
+        last_name = kwargs.get("last_name", "")
+        country = kwargs.get("country", "")
+
+        display_name = full_name
+        if first_name and last_name:
+            display_name = f"{first_name} {last_name}"
+            if middle_name:
+                display_name = f"{first_name} {middle_name} {last_name}"
+
+        self.progress.update(self.task_id, description=f"[bold yellow]Scanning full name: {display_name} in {country}...[/bold yellow]")
+        results = {"full_name": full_name, "first_name": first_name, "middle_name": middle_name, "last_name": last_name, "country": country, "found_on": [], "errors": []}
 
         country_sites: List[Site] = self.sites_manager.get_full_name_sites_by_country(country)
 
@@ -42,17 +54,39 @@ class FullNameScanner(BaseScanner):
 
         try:
             async with aiohttp.ClientSession() as session:
-                for site in country_sites: # Changed site_info to site
-                    if site.active: # Only process active sites
-                        if not site.requiresJs: # Check if it's a basic check
-                            tasks.append(self._check_site_basic(session, full_name, site, basic_semaphore))
-                        elif site.requiresJs and context: # Check if it's a dynamic check and browser context is available
-                            tasks.append(self._check_site_dynamic(context, full_name, site, dynamic_semaphore))
-                        else:
-                            logger.warning(f"Skipping site {site.name} due to unsupported check method or missing browser context.")
+                for site in country_sites:
+                    if site.active:
+                        # Determine the query based on site placeholders
+                        query_params = {}
+                        if "first" in site.placeholders and "last" in site.placeholders:
+                            query_params["first"] = first_name
+                            query_params["last"] = last_name
+                            # If middle name is provided, and site supports it, we could add it here.
+                            # For now, we'll assume sites primarily use first/last or a single query.
+                            if not site.requiresJs:
+                                tasks.append(self._check_site_basic(session, site, basic_semaphore, **query_params))
+                            elif site.requiresJs and context:
+                                tasks.append(self._check_site_dynamic(context, site, dynamic_semaphore, **query_params))
+                            else:
+                                logger.warning(f"Skipping site {site.name} due to unsupported check method or missing browser context.")
+                        else: # Site uses a single query parameter
+                            name_variations = []
+                            if middle_name:
+                                name_variations.append(f"{first_name} {middle_name} {last_name}")
+                                name_variations.append(f"{first_name} {last_name}")
+                            else:
+                                name_variations.append(full_name)
+
+                            for name_to_scan in name_variations:
+                                query_params_for_variation = {"query": name_to_scan} # Create new dict for each variation
+                                if not site.requiresJs:
+                                    tasks.append(self._check_site_basic(session, site, basic_semaphore, **query_params_for_variation))
+                                elif site.requiresJs and context:
+                                    tasks.append(self._check_site_dynamic(context, site, dynamic_semaphore, **query_params_for_variation))
+                                else:
+                                    logger.warning(f"Skipping site {site.name} due to unsupported check method or missing browser context.")
                     else:
                         logger.info(f"Skipping inactive site: {site.name}")
-
 
                 site_results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -67,24 +101,26 @@ class FullNameScanner(BaseScanner):
                 await context.close()
             self.progress.update(self.task_id, advance=len(country_sites))
 
-        self.progress.update(self.task_id, description=f"[bold green]Full name scan for {full_name} in {country} complete.[/bold green]")
+        self.progress.update(self.task_id, description=f"[bold green]Full name scan for {display_name} in {country} complete.[/bold green]")
         return results
 
     async def _check_site_basic(
         self,
         session: aiohttp.ClientSession,
-        full_name: str,
-        site: Site, # Changed site_info to site
+        site: Site,
         semaphore: asyncio.Semaphore,
+        **kwargs
     ) -> Dict[str, Any]:
         """
         Performs a basic check on a site using aiohttp.
         """
         site_name = site.name
-        url = site.urlTemplate.format(query=full_name) # Assuming 'query' is the placeholder for full_name
+        url = site.urlTemplate.format(**kwargs)
         if site.urlEncode:
             from urllib.parse import quote_plus
-            url = site.urlTemplate.format(query=quote_plus(full_name))
+            # Apply urlEncode to each value in kwargs before formatting
+            encoded_kwargs = {k: quote_plus(str(v)) for k, v in kwargs.items()}
+            url = site.urlTemplate.format(**encoded_kwargs)
 
         # Use site's headers, fallback to default User-Agent if not specified
         headers = site.headers if site.headers else {"User-Agent": config.Config.USER_AGENT}
@@ -109,10 +145,10 @@ class FullNameScanner(BaseScanner):
                         content = await response.text()
                         
                         # Check for noResult
-                        if site.noResult.type == "contains":
-                            found = site.noResult.value.lower() not in content.lower()
-                        elif site.noResult.type == "status_code":
-                            found = response.status != int(site.noResult.value)
+                        if site.noResult[0].type == "contains": # Access first element of noResult list
+                            found = site.noResult[0].value.lower() not in content.lower()
+                        elif site.noResult[0].type == "status_code": # Access first element of noResult list
+                            found = response.status != int(site.noResult[0].value)
                         else: # Default to checking for 2xx status codes if noResult type is unknown
                             found = 200 <= response.status < 300
 
@@ -138,18 +174,20 @@ class FullNameScanner(BaseScanner):
     async def _check_site_dynamic(
         self,
         context: BrowserContext,
-        full_name: str,
-        site: Site, # Changed site_info to site
+        site: Site,
         semaphore: asyncio.Semaphore,
+        **kwargs
     ) -> Dict[str, Any]:
         """
         Performs a check on a JS-heavy site using a shared browser context.
         """
         site_name = site.name
-        url = site.urlTemplate.format(query=full_name) # Assuming 'query' is the placeholder for full_name
+        url = site.urlTemplate.format(**kwargs)
         if site.urlEncode:
             from urllib.parse import quote_plus
-            url = site.urlTemplate.format(query=quote_plus(full_name))
+            # Apply urlEncode to each value in kwargs before formatting
+            encoded_kwargs = {k: quote_plus(str(v)) for k, v in kwargs.items()}
+            url = site.urlTemplate.format(**encoded_kwargs)
 
         # Use site's timeout, fallback to default 45 seconds
         timeout = site.timeoutSeconds if site.timeoutSeconds else 45
@@ -180,10 +218,10 @@ class FullNameScanner(BaseScanner):
                     status = response.status if response else 0
 
                     # Check for noResult
-                    if site.noResult.type == "contains":
-                        found = site.noResult.value.lower() not in content.lower()
-                    elif site.noResult.type == "status_code":
-                        found = status != int(site.noResult.value)
+                    if site.noResult[0].type == "contains": # Access first element of noResult list
+                        found = site.noResult[0].value.lower() not in content.lower()
+                    elif site.noResult[0].type == "status_code": # Access first element of noResult list
+                        found = status != int(site.noResult[0].value)
                     else: # Default to checking for 2xx status codes if noResult type is unknown
                         found = 200 <= status < 300
 
@@ -207,3 +245,5 @@ class FullNameScanner(BaseScanner):
                 self.progress.update(self.task_id, advance=1) # Update progress on each attempt
 
         return {"name": site_name, "url": url, "found": found, "method": "DYNAMIC"}
+
+    
