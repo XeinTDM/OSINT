@@ -21,6 +21,6 @@ def print_banner():
     """
     print(banner_text)
     print("=============================================")
-    print("        OSINT-Tool - by @snorreks")
+    print("        OSINT-Tool - by @XeinTDM")
     print("=============================================")
     print()

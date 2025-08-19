@@ -3,11 +3,11 @@ import whois
 import aiodns
 from whois.parser import PywhoisError
 import ipaddress
+
 import logging
 from typing import Dict, Any, List, Optional, Union
 from modules.core.base_scanner import BaseScanner
-from modules.core.exceptions import ScannerError
-from modules.core.errors import NetworkError, ParsingError, APIError
+from modules.core.errors import NetworkError, ParsingError
 from modules.enums import ScannerNames
 
 logger = logging.getLogger(__name__)

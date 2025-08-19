@@ -16,8 +16,7 @@ import logging
 
 import questionary
 
-from modules.tui.choice_handler import get_scan_choices
-from modules.tui.input_handler import gather_scan_arguments
+
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,6 @@ import phonenumbers
 from phonenumbers import geocoder, carrier, timezone
 from typing import Dict, Any
 from modules.core.base_scanner import BaseScanner
-from modules.core.exceptions import ScannerError
 from modules.core.errors import ParsingError
 from modules.enums import ScannerNames
 

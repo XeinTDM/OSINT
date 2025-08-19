@@ -5,7 +5,6 @@ import json
 from typing import Dict, Any, Optional
 from modules import config
 from modules.core.base_scanner import BaseScanner
-from modules.core.exceptions import ScannerError
 from modules.core.errors import NetworkError, APIError, ParsingError, RateLimitError, AuthenticationError
 from modules.enums import ScannerNames
 

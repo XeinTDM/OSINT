@@ -1,6 +1,5 @@
-import asyncio
 import logging
-from typing import Dict, Any, Optional, Type
+from typing import Dict, Any, Type
 
 from playwright.async_api import Browser
 from rich.progress import Progress
@@ -30,7 +29,7 @@ class ScanManager:
         if kwargs is None:
             kwargs = {}
 
-        scanner_name = ScannerClass.name # Access the name property from the class
+        scanner_name = ScannerClass.NAME
         task_id = self.progress.add_task(f"[cyan]Scanning {scanner_name} for {target}...[/cyan]", total=1)
 
         try:
@@ -46,8 +45,8 @@ class ScanManager:
         except ScannerError as e:
             logger.error(f"Error in {scanner_name} for {target}: {e}")
             self.progress.update(task_id, description=f"[red]Error in {scanner_name} for {target}.[/red]", completed=1)
-            scan_context[scanner_name.lower().replace(" ", "_")] = {"error": str(e)}
+            scan_context[ScannerClass.NAME.lower().replace(" ", "_")] = {"error": str(e)}
         except Exception as e:
             logger.error(f"An unexpected error occurred in {scanner_name} for {target}: {e}", exc_info=True)
             self.progress.update(task_id, description=f"[red]Unexpected error in {scanner_name} for {target}.[/red]", completed=1)
-            scan_context[scanner_name.lower().replace(" ", "_")] = {"error": "An unexpected error occurred."}
+            scan_context[ScannerClass.NAME.lower().replace(" ", "_")] = {"error": "An unexpected error occurred."}

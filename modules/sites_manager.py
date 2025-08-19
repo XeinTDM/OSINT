@@ -162,7 +162,7 @@ class SitesManager:
         return []
 
 
-    async def update_sites_json_from_url(self, url: str = "https://raw.githubusercontent.com/snorreks/OSINT-Tool/main/data/sites.json"):
+    async def update_sites_json_from_url(self, url: str = "https://raw.githubusercontent.com/XeinTDM/OSINT/main/data/sites.json"):
         """Fetches the latest sites.json (username sites) from a URL and saves it locally."""
         logger.info(f"Attempting to fetch latest sites.json from {url}...")
         try:

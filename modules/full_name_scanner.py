@@ -6,7 +6,7 @@ from rich.progress import Progress
 from playwright.async_api import Browser, BrowserContext, TimeoutError as PlaywrightTimeoutError
 from modules.core.base_scanner import BaseScanner
 from modules.sites_manager import SitesManager
-from modules.enums import CheckMethods, ErrorTypes, CheckTypes
+
 from modules.core.errors import NetworkError, ScannerError
 from modules import config
 from modules.core.site_models import Site # New import
@@ -20,9 +20,7 @@ class FullNameScanner(BaseScanner):
         super().__init__(progress, task_id, browser)
         self.sites_manager = SitesManager()
 
-    @property
-    def name(self) -> str:
-        return "Full Name Scan"
+    NAME: str = "Full Name Scan"
 
     async def scan(self, full_name: str, country: str, **kwargs) -> Dict[str, Any]:
         self.progress.update(self.task_id, description=f"[bold yellow]Scanning full name: {full_name} in {country}...[/bold yellow]")

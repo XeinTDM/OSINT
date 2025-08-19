@@ -1,7 +1,7 @@
 import pytest
 import os
 import json
-from unittest.mock import AsyncMock, Mock, patch, mock_open, call
+from unittest.mock import AsyncMock, Mock, patch, mock_open
 import aiohttp
 from modules.sites_manager import SitesManager
 from modules import paths
@@ -29,48 +29,7 @@ def mock_sites_json_paths(tmp_path):
 
 @pytest.mark.asyncio
 async def test_ensure_sites_json_exists_creates_files_if_not_found(mock_sites_json_paths):
-    expected_username_content = json.dumps({"username_sites": []}, indent=2)
-    expected_full_name_content = json.dumps([
-        {
-            "country": "Sweden",
-            "country_code": "SE",
-            "sites": [
-                {
-                    "id": "ratsit_v1",
-                    "name": "Ratsit",
-                    "homeUrl": "https://www.ratsit.se",
-                    "urlTemplate": "https://www.ratsit.se/sok/person?who={query}",
-                    "placeholders": ["query"],
-                    "urlEncode": True,
-                    "method": "GET",
-                    "headers": {
-                        "User-Agent": "osint-tool/1.0"
-                    },
-                    "responseType": "html",
-                    "requiresJs": False,
-                    "noResult": { "type": "contains", "value": "Inga träffar" },
-                    "resultMatcher": { "type": "css", "value": ".search-results .person" },
-                    "extract": {
-                        "recordsSelector": ".search-results .person",
-                        "fields": {
-                            "name": { "type": "css", "value": ".name", "multiple": False },
-                            "age": { "type": "regex", "value": r"(\d+) år" },
-                            "address": { "type": "css", "value": ".address" }
-                        }
-                    },
-                    "pagination": { "type": "param", "paramName": "page", "start": 1, "maxPages": 2 },
-                    "rateLimitPerMinute": 30,
-                    "timeoutSeconds": 10,
-                    "retries": 2,
-                    "lastVerified": "2025-08-01T00:00:00Z",
-                    "active": True,
-                    "legal": { "allowed": None, "note": "Check robots/TOS for commercial scraping" },
-                    "tags": ["people", "phone", "directory"],
-                    "notes": "Use query = 'First Last' or SSN when available"
-                }
-            ]
-        }
-    ], indent=2)
+    
 
     # Create separate mock_open instances for each expected file operation
     mock_file_sites_write = mock_open()
@@ -82,7 +41,7 @@ async def test_ensure_sites_json_exists_creates_files_if_not_found(mock_sites_js
         patch("os.makedirs"),
         patch("aiohttp.ClientSession", side_effect=aiohttp.ClientError("Simulated network error")), # Simulate network error for URL updates
         patch.object(SitesManager, "update_sites_json_from_url", new_callable=AsyncMock) as mock_update_username_sites,
-        patch.object(SitesManager, "update_full_name_sites_json_from_url", new_callable=AsyncMock) as mock_update_full_name_sites,
+        patch.object(SitesManager, "update_full_name_sites_json_from_url", new_callable=AsyncMock),
         patch.object(SitesManager, "_load_sites_data") # Prevent _load_sites_data from running during init
     ):
         mocked_open.side_effect = [
@@ -169,7 +128,7 @@ async def test_update_sites_json_from_url_success(mock_sites_json_paths):
         manager = SitesManager()
         result = await manager.update_sites_json_from_url()
 
-        mock_session_context.get.assert_called_once_with("https://raw.githubusercontent.com/snorreks/OSINT-Tool/main/data/sites.json", timeout=10)
+        mock_session_context.get.assert_called_once_with("https://raw.githubusercontent.com/XeinTDM/OSINT/main/data/sites.json", timeout=10)
         mocked_open.assert_called_with(paths.SITES_JSON_PATH, "w", encoding="utf-8")
         handle = mocked_open()
         written_content = "".join(call_args.args[0] for call_args in handle.write.call_args_list)

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 from rich.progress import Progress
 from playwright.async_api import Browser
-from modules.core.errors import NetworkError, APIError, ParsingError, RateLimitError, AuthenticationError
+
 
 class BaseScanner(ABC):
     """Abstract base class for all OSINT scanners."""
@@ -26,8 +26,5 @@ class BaseScanner(ABC):
         """
         pass
 
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Returns the name of the scanner."""
-        pass
+    NAME: str = "Base Scanner"
+    """The name of the scanner. Must be overridden by subclasses."""

@@ -1,11 +1,8 @@
 import unittest
 from unittest.mock import patch, AsyncMock, MagicMock
 import asyncio
-import ipaddress
 from modules.core.errors import ParsingError, NetworkError
-from modules.core.exceptions import ScannerError
 from modules.domain_ip_scanner import DomainIPScanner
-from modules import constants
 from whois.parser import PywhoisError
 from rich.progress import Progress
 

@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, Any
 
-import questionary
+
 from playwright.async_api import async_playwright
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
