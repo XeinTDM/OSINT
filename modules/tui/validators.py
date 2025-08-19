@@ -1,6 +1,7 @@
 """
 This module provides a collection of validator functions that are used to
-validate user input in the TUI (Text-based User Interface).
+validate user input in the TUI (Text-based User
+Interface).
 
 Each validator is a callable that takes a string as input and returns `True`
 if the input is valid, or a `ValidationResult` with an error message if the
@@ -46,3 +47,11 @@ def validate_phone_number(text: str) -> bool:
 def validate_filename(text: str) -> bool:
     """Validates that the filename contains only alphanumeric characters, underscores, and hyphens."""
     return all(c.isalnum() or c in "_-" for c in text)
+
+def validate_full_name(text: str) -> bool:
+    """Validates that the full name is not empty."""
+    return len(text) > 0
+
+def validate_country(text: str) -> bool:
+    """Validates that the country is not empty."""
+    return len(text) > 0

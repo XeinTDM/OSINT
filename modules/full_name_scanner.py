@@ -27,6 +27,7 @@ class FullNameScanner(BaseScanner):
         first_name = kwargs.get("first_name", "")
         middle_name = kwargs.get("middle_name", "")
         last_name = kwargs.get("last_name", "")
+        aliases = kwargs.get("aliases", []) # New line for aliases
         country = kwargs.get("country", "")
 
         display_name = full_name
@@ -76,6 +77,10 @@ class FullNameScanner(BaseScanner):
                                 name_variations.append(f"{first_name} {last_name}")
                             else:
                                 name_variations.append(full_name)
+                            
+                            # Add aliases to name variations
+                            for alias in aliases:
+                                name_variations.append(alias)
 
                             for name_to_scan in name_variations:
                                 query_params_for_variation = {"query": name_to_scan} # Create new dict for each variation

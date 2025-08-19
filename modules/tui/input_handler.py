@@ -1,18 +1,3 @@
-"""
-This module is responsible for handling user input in the TUI (Text-based User
-Interface). It provides functions to gather the necessary arguments for the
-selected scans, such as usernames, email addresses, and API keys.
-
-Key functionalities include:
-    - Prompting the user for input using the `questionary` library.
-    - Validating the user input using the validators from the `validators` module.
-    - Retrieving API keys from environment variables or prompting the user if they
-      are not found.
-
-By separating the input handling logic, we can keep the main menu module clean
-and focused on the overall flow of the user interface.
-"""
-
 import os
 from typing import Dict, Any, Optional, List
 
@@ -61,5 +46,37 @@ async def gather_scan_arguments(scan_choices: List[str]) -> Dict[str, Any]:
             "Enter the phone number to analyze (with country code):",
             validate=validators.validate_phone_number
         ).ask_async()
+
+    return args
+
+async def gather_full_name_arguments() -> Dict[str, Any]:
+    """Gathers arguments for a full name scan."""
+    args: Dict[str, Any] = {}
+
+    args["full_name"] = await questionary.text(
+        "Enter the full name to scan (e.g., John Doe, or John A. Doe):",
+        validate=validators.validate_full_name
+    ).ask_async()
+
+    if await questionary.confirm("Do you want to provide first, middle, and last names separately?").ask_async():
+        args["first_name"] = await questionary.text("Enter first name (optional):").ask_async()
+        args["middle_name"] = await questionary.text("Enter middle name (optional):").ask_async()
+        args["last_name"] = await questionary.text("Enter last name (optional):").ask_async()
+
+    if await questionary.confirm("Do you want to provide any aliases or maiden names?").ask_async():
+        aliases_input = await questionary.text(
+            "Enter aliases or maiden names, separated by commas (e.g., Jane Smith, J. Doe):"
+        ).ask_async()
+        if aliases_input:
+            args["aliases"] = [alias.strip() for alias in aliases_input.split(',')]
+        else:
+            args["aliases"] = []
+    else:
+        args["aliases"] = []
+
+    args["country"] = await questionary.text(
+        "Enter the country for the scan (e.g., Sweden, US):",
+        validate=validators.validate_country
+    ).ask_async()
 
     return args
