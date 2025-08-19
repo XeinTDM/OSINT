@@ -9,7 +9,7 @@ from modules.sites_manager import SitesManager
 
 from modules.core.errors import NetworkError, ScannerError
 from modules import config
-from modules.core.site_models import Site # New import
+from modules.core.site_models import Site
 
 logger = logging.getLogger(__name__)
 

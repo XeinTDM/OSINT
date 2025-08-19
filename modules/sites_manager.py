@@ -62,7 +62,7 @@ class SitesManager:
                                     placeholders=site_info["placeholders"],
                                     urlEncode=site_info["urlEncode"],
                                     method=site_info["method"],
-                                    headers=site_info.get("headers", {}), # Corrected from {{}} to {}
+                                    headers=site_info.get("headers", {}),
                                     responseType=site_info["responseType"],
                                     requiresJs=site_info["requiresJs"],
                                     noResult=no_result,
