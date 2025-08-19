@@ -59,11 +59,16 @@ class FullNameScanner(BaseScanner):
                     if site.active:
                         # Determine the query based on site placeholders
                         query_params = {}
+                        advanced_search = kwargs.get("advanced_search", False)
+                        city = kwargs.get("city", "")
+
                         if "first" in site.placeholders and "last" in site.placeholders:
                             query_params["first"] = first_name
                             query_params["last"] = last_name
-                            # If middle name is provided, and site supports it, we could add it here.
-                            # For now, we'll assume sites primarily use first/last or a single query.
+                            
+                            if advanced_search and "city" in site.advanced_placeholders and city:
+                                query_params["city"] = city
+
                             if not site.requiresJs:
                                 tasks.append(self._check_site_basic(session, site, basic_semaphore, **query_params))
                             elif site.requiresJs and context:

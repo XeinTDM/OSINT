@@ -58,6 +58,7 @@ class Site:
     legal: Optional[Legal] = None
     tags: List[str] = field(default_factory=list)
     notes: Optional[str] = None
+    advanced_placeholders: List[str] = field(default_factory=list) # New field for advanced search parameters
 
 @dataclass
 class CountrySites:

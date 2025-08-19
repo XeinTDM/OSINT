@@ -76,7 +76,8 @@ class SitesManager:
                                     active=site_info.get("active", True),
                                     legal=legal,
                                     tags=site_info.get("tags", []),
-                                    notes=site_info.get("notes")
+                                    notes=site_info.get("notes"),
+                                    advanced_placeholders=site_info.get("advanced_placeholders", [])
                                 )
                                 sites.append(site)
                             except KeyError as ke:

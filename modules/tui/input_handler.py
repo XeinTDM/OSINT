@@ -79,4 +79,12 @@ async def gather_full_name_arguments() -> Dict[str, Any]:
         validate=validators.validate_country
     ).ask_async()
 
+    if await questionary.confirm("Do you want to provide advanced search parameters (e.g., city, age)?").ask_async():
+        args["advanced_search"] = True
+        # For now, we'll only ask for city as an example
+        args["city"] = await questionary.text("Enter city (optional):").ask_async()
+        # Add more advanced parameters here as needed
+    else:
+        args["advanced_search"] = False
+
     return args
