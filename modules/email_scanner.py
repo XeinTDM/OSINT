@@ -75,19 +75,19 @@ class EmailScanner(BaseScanner):
                     retry_after = int(response.headers.get("Retry-After", str(initial_delay * (2 ** attempt))))
                     logger.warning(f"Rate limited by HIBP. Waiting for {retry_after} seconds before retrying (attempt {attempt + 1}/{max_retries + 1})...")
                     await asyncio.sleep(retry_after)
-                    continue # Try again
-                response.raise_for_status() # Raise an exception for 4xx or 5xx status codes
+                    continue
+                response.raise_for_status()
                 return response
             except aiohttp.ClientResponseError as e:
-                if e.status == 429: # This case is handled by the if block above, but good to have
+                if e.status == 429:
                     logger.warning("Rate limited by HIBP (ClientResponseError). Retrying...")
                     await asyncio.sleep(initial_delay * (2 ** attempt))
                     continue
-                raise # Re-raise other ClientResponseErrors
+                raise
             except (asyncio.TimeoutError, aiohttp.ClientConnectorError, aiohttp.ClientError) as e:
                 logger.warning(f"Network error during HIBP query (attempt {attempt + 1}/{max_retries + 1}): {e}")
                 if attempt == max_retries:
                     raise NetworkError(f"Failed to query HIBP API after {max_retries + 1} attempts.", self.name, e)
-                await asyncio.sleep(initial_delay * (2 ** attempt)) # Exponential backoff
+                await asyncio.sleep(initial_delay * (2 ** attempt))
 
         raise APIError("Failed to query HIBP API after multiple retries due to unknown error.", self.name)

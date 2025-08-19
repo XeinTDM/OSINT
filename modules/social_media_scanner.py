@@ -49,7 +49,7 @@ class SocialMediaScanner(BaseScanner):
                 }
             else:
                 error_message = "User not found."
-                if response.errors:
+                if response.errors and len(response.errors) > 0:
                     error_message = response.errors[0].get("detail", error_message)
                 raise APIError(error_message, self.name)
 

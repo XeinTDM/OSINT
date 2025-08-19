@@ -47,13 +47,14 @@
             <p class="error">⚠️ Error: {{ data.error }}</p>
         {% else %}
             {% if section_key == "username_scan" %}
-                <table>
-                    <tr><th>Site</th><th>URL</th></tr>
-                    {% for item in data.get("found", []) %}
-                    <tr><td>{{ item["name"] }}</td><td><a href="{{ item["url"] }}" target="_blank">{{ item["url"] }}</a></td></tr>
-                    {% endfor %}
-                </table>
-                {% if not data.get("found") %}
+                {% if data.get("found_on") %}
+                    <table>
+                        <tr><th>Site</th><th>URL</th></tr>
+                        {% for item in data.get("found_on", []) %}
+                        <tr><td>{{ item["name"] }}</td><td><a href="{{ item["url"] }}" target="_blank">{{ item["url"] }}</a></td></tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
                     <p class="not-found">No accounts found on checked sites.</p>
                 {% endif %}
                 {% if data.get("errors") %}

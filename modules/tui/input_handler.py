@@ -17,7 +17,11 @@ async def get_api_key(env_var: str, prompt: str) -> Optional[str]:
 
 async def gather_scan_arguments(scan_choices: List[str]) -> Dict[str, Any]:
     """Gathers the necessary arguments for the selected scans."""
-    args: Dict[str, Any] = {choice: None for choice in scan_choices}
+    args: Dict[str, Any] = {"selected_scans": scan_choices}
+
+    for choice in scan_choices:
+        if choice not in args:
+            args[choice] = None
 
     if "Username Scan" in scan_choices or "Twitter Profile Scan" in scan_choices:
         args["username"] = await questionary.text(

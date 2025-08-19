@@ -69,7 +69,7 @@ def _add_username_results(tree: Tree, results: Dict[str, Any]):
             user_tree.add(f"[red]  Original Exception: {type(error_obj.original_exception).__name__} - {error_obj.original_exception}[/red]")
         return
 
-    found_sites = scan_results.get("found", [])
+    found_sites = scan_results.get("found_on", [])
     if found_sites:
         for site in found_sites:
             user_tree.add(f"✔ Found on {site['name']}: {site['url']}")
@@ -209,7 +209,8 @@ def generate_cli_report(results: Dict[str, Any]):
     Args:
         results (Dict[str, Any]): The OSINT scan results.
     """
-    report_title = f"OSINT Report for: {results.get('target', 'N/A')}"
+    target = results.get('_target_input', 'N/A')
+    report_title = f"OSINT Report for: {target}"
     console.print(Panel(report_title, style="bold magenta", expand=False))
 
     main_tree = Tree("Scan Results")

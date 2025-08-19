@@ -4,7 +4,8 @@
       "name": "GitHub",
       "url": "https://github.com/{}",
       "checkMethod": "basic",
-      "errorType": "status_code"
+      "errorType": "string",
+      "errorString": "Not Found"
     },
     {
       "name": "Instagram",
@@ -66,7 +67,8 @@
       "name": "GitLab",
       "url": "https://gitlab.com/{}",
       "checkMethod": "basic",
-      "errorType": "status_code"
+      "errorType": "string",
+      "errorString": "Not Found"
     },
     {
       "name": "Pastebin",
@@ -75,13 +77,7 @@
       "errorType": "string",
       "errorString": "Not Found (#404)"
     },
-    {
-      "name": "Stack Overflow",
-      "url": "https://stackoverflow.com/users/{}",
-      "checkMethod": "dynamic",
-      "errorType": "string",
-      "errorString": "Page Not Found"
-    },
+
     {
       "name": "Codecademy",
       "url": "https://www.codecademy.com/profiles/{}",
@@ -89,13 +85,7 @@
       "errorType": "string",
       "errorString": "This profile could not be found"
     },
-    {
-      "name": "Roblox",
-      "url": "https://www.roblox.com/user.aspx?username={}",
-      "checkMethod": "dynamic",
-      "errorType": "string",
-      "errorString": "Page cannot be found or no longer exists"
-    },
+
     {
       "name": "Medium",
       "url": "https://medium.com/@{}",
@@ -114,7 +104,8 @@
       "name": "Keybase",
       "url": "https://keybase.io/{}",
       "checkMethod": "basic",
-      "errorType": "status_code"
+      "errorType": "string",
+      "errorString": "User not found"
     },
     {
       "name": "DeviantArt",
@@ -469,7 +460,14 @@
       "url": "https://www.khanacademy.org/profile/{}/",
       "checkMethod": "dynamic",
       "errorType": "string",
-      "errorString": "Page not found"
+      "errorString": [
+        "Page not found",
+        "Profile not found",
+        "User not found",
+        "404",
+        "Loading failed",
+        "Oops. It looks like that profile doesn't exist."
+      ]
     },
     {
       "name": "Duolingo",
@@ -526,10 +524,17 @@
     },
     {
       "name": "Signal",
-      "url": "https://signal.me/add/{}/",
+      "url": "https://signal.me/add/{}",
       "checkMethod": "dynamic",
       "errorType": "string",
-      "errorString": "user not found"
+      "errorString": [
+        "user not found",
+        "User not found",
+        "Profile not found",
+        "404",
+        "User not found",
+        "Profile not available"
+      ]
     },
     {
       "name": "Telegram",
@@ -547,10 +552,9 @@
     },
     {
       "name": "Discord",
-      "url": "https://discord.com/users/{}/",
-      "checkMethod": "dynamic",
-      "errorType": "string",
-      "errorString": "Unknown User"
+      "url": "https://discord.com/users/{}",
+      "checkMethod": "basic",
+      "errorType": "status_code"
     }
   ]
 }

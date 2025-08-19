@@ -41,6 +41,9 @@ async def handle_main_menu_choice(choice: str):
         if selected_scans:
             scan_arguments = await gather_scan_arguments(selected_scans)
             if scan_arguments:
+                # Add automatic report generation
+                scan_arguments["output"] = "osint_report.json"
+                scan_arguments["html"] = "osint_report.html"
                 await run_scans(scan_arguments)
     elif choice == ScannerNames.FULL_NAME.value:
         await handle_full_name_scan()

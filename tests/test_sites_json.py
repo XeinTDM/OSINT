@@ -122,7 +122,7 @@ async def test_ensure_sites_json_exists_handles_json_decode_error(mock_sites_jso
 async def test_parse_full_name_sites_data_with_validation_error(mock_sites_json_paths):
     manager = SitesManager()
     invalid_data = [
-        {"country": "Invalid", "sites": [{"id": "missing_name"}]} # Missing 'name' field
+        {"country": "Invalid", "sites": [{"id": "missing_name"}]}
     ]
 
     with patch("modules.sites_manager.logger.error") as mock_logger_error:
@@ -139,20 +139,17 @@ async def test_create_default_full_name_sites_json_reads_from_default_file(mock_
     with (
         patch("builtins.open", new_callable=mock_open) as mocked_open,
         patch("os.makedirs"),
-        patch("os.path.exists", return_value=True), # Simulate default file exists
+        patch("os.path.exists", return_value=True),
         patch("json.dump") as mock_json_dump,
     ):
-        # Mock reading from the default file
         mocked_open.side_effect = [
-            mock_open(read_data=json.dumps(mock_default_content)).return_value, # For reading default
-            mock_open().return_value # For writing to actual path
+            mock_open(read_data=json.dumps(mock_default_content)).return_value,
+            mock_open().return_value
         ]
         manager._create_default_full_name_sites_json()
 
-        # Verify that the default file was read
         mocked_open.assert_any_call(paths.DEFAULT_FULL_NAME_SITES_JSON_PATH, "r", encoding="utf-8")
 
-        # Verify that the content was written to the correct path
         mocked_open.assert_any_call(paths.FULL_NAME_SITES_JSON_PATH, "w", encoding="utf-8")
         mock_json_dump.assert_called_once_with(mock_default_content, ANY, indent=2)
 
@@ -214,9 +211,9 @@ async def test_update_full_name_sites_json_from_url_success(mock_sites_json_path
         patch("os.makedirs"),
     ):
         manager = SitesManager()
-        result = await manager.update_full_name_sites_json_from_url("http://example.com/full_name_sites.json")
+        result = await manager.update_full_name_sites_json_from_url("https://raw.githubusercontent.com/XeinTDM/OSINT/main/data/full_name_sites.json")
 
-        mock_session_context.get.assert_called_once_with("http://example.com/full_name_sites.json", timeout=10)
+        mock_session_context.get.assert_called_once_with("https://raw.githubusercontent.com/XeinTDM/OSINT/main/data/full_name_sites.json", timeout=10)
         mocked_open.assert_called_with(paths.FULL_NAME_SITES_JSON_PATH, "w", encoding="utf-8")
         handle = mocked_open()
         written_content = "".join(call_args.args[0] for call_args in handle.write.call_args_list)

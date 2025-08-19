@@ -39,3 +39,22 @@ class CheckTypes(Enum):
     """Enum for check types."""
     POSITIVE = "positive"
     NEGATIVE = "negative"
+
+
+class HttpMethod(Enum):
+    """Enum for HTTP methods."""
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    HEAD = "HEAD"
+    OPTIONS = "OPTIONS"
+    PATCH = "PATCH"
+
+
+class ResponseType(Enum):
+    """Enum for expected response types."""
+    JSON = "json"
+    HTML = "html"
+    XML = "xml"
+    TEXT = "text"

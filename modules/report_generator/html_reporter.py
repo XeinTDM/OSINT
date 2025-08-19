@@ -19,7 +19,7 @@ import os
 import logging
 from typing import Dict, Any
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound, TemplateError
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +30,8 @@ def save_html_report(results: Dict[str, Any], filename: str):
     """Saves a modern HTML report using Jinja2 template."""
     logger.info(f"Saving HTML report to {filename}...")
     try:
-        target_id = (
-            results.get("target_username")
-            or results.get("target_email")
-            or results.get("target_domain_or_ip")
-            or results.get("target_phone_number", "Unknown Target")
-        )
-        scan_results_only = {k: v for k, v in results.items() if k not in ["target_username", "target_email", "target_domain_or_ip", "target_phone_number", "osint_keywords"]}
+        target_id = results.get("_target_input", "Unknown Target")
+        scan_results_only = {k: v for k, v in results.items() if k not in ["_target_input", "osint_keywords"]}
 
         template = jinja_env.get_template("report_template.html")
         rendered_html = template.render(
@@ -47,5 +42,11 @@ def save_html_report(results: Dict[str, Any], filename: str):
         with open(filename, "w", encoding="utf-8") as f:
             f.write(rendered_html)
         logger.info(f"HTML report saved successfully to {filename}")
+    except TemplateNotFound as e:
+        logger.error(f"HTML report template not found: {e}")
+    except TemplateError as e:
+        logger.error(f"Error rendering HTML report template: {e}")
+    except IOError as e:
+        logger.error(f"File I/O error saving HTML report to {filename}: {e}")
     except Exception as e:
-        logger.error(f"Error saving HTML report to {filename}: {e}")
+        logger.error(f"An unexpected error occurred while saving HTML report to {filename}: {e}")

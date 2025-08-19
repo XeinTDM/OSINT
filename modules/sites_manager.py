@@ -44,9 +44,16 @@ class SitesManager:
         logger.info("Default full_name_sites.json created.")
 
     def _parse_full_name_sites_data(self, raw_data: list) -> List[CountrySites]:
-        parsed_data = []
-        if isinstance(raw_data, list):
-            for country_data in raw_data:
+        parsed_data: List[CountrySites] = []
+        try:
+            if isinstance(raw_data, dict) and 'countries' in raw_data and isinstance(raw_data['countries'], list):
+                iterable = raw_data['countries']
+            elif isinstance(raw_data, list):
+                iterable = raw_data
+            else:
+                iterable = []
+
+            for country_data in iterable:
                 try:
                     parsed_data.append(CountrySites.model_validate(country_data))
                 except ValidationError as e:
@@ -55,6 +62,8 @@ class SitesManager:
                 except Exception as e:
                     logger.error(f"An unexpected error occurred during parsing country data: {e}")
                     continue
+        except Exception as e:
+            logger.error(f"Failed to parse full name sites root: {e}")
         return parsed_data
 
     def get_username_sites(self) -> List[Site]:
@@ -158,34 +167,36 @@ class SitesManager:
 
     async def ensure_sites_json_exists(self):
         """Ensures sites.json and full_name_sites.json exist and are loaded. Attempts to update from URL if not found or empty."""
-        # Load username sites
         if not self._username_sites_data:
-            if not os.path.exists(paths.SITES_JSON_PATH):
+            username_file_exists = os.path.exists(paths.SITES_JSON_PATH)
+            if not username_file_exists:
                 logger.warning("sites.json not found. Creating a default file.")
                 self._create_default_username_sites_json()
 
             self._username_sites_data = self._load_username_sites_data_from_file()
 
-            if not self._username_sites_data:
-                logger.warning("Username sites data is empty or missing after local load. Attempting to fetch from URL...")
+            if not self._username_sites_data and not username_file_exists:
+                logger.warning("Username sites data is empty after creating default. Attempting to fetch from URL...")
                 await self.update_sites_json_from_url()
-                if not self._username_sites_data:
-                    logger.error("Failed to load username sites. Using empty default data.")
-                    self._username_sites_data = []
+            
+            if not self._username_sites_data:
+                logger.error("Failed to load username sites. Using empty default data.")
+                self._username_sites_data = []
 
-        # Load full name sites
         if not self._full_name_sites_data:
-            if not os.path.exists(paths.FULL_NAME_SITES_JSON_PATH):
+            full_name_file_exists = os.path.exists(paths.FULL_NAME_SITES_JSON_PATH)
+            if not full_name_file_exists:
                 logger.warning("full_name_sites.json not found. Creating a default file.")
                 self._create_default_full_name_sites_json()
 
             self._full_name_sites_data = self._load_full_name_sites_data_from_file()
 
-            if not self._full_name_sites_data:
-                logger.warning("Full name sites data is empty or missing after local load. Attempting to fetch from URL...")
+            if not self._full_name_sites_data and not full_name_file_exists:
+                logger.warning("Full name sites data is empty after creating default. Attempting to fetch from URL...")
                 await self.update_full_name_sites_json_from_url(FULL_NAME_SITES_URL)
-                if not self._full_name_sites_data:
-                    logger.error("Failed to load full name sites. Using empty default data.")
-                    self._full_name_sites_data = []
+
+            if not self._full_name_sites_data:
+                logger.error("Failed to load full name sites. Using empty default data.")
+                self._full_name_sites_data = []
 
 sites_manager = SitesManager()

@@ -16,7 +16,7 @@ class ScanManager:
         self.progress = progress
         self.browser = browser
 
-    async def run_scanner(self, ScannerClass: Type[BaseScanner], target: str, scan_context: Dict[str, Any], kwargs: Dict[str, Any] = None):
+    async def run_scanner(self, ScannerClass: Type[BaseScanner], target: str, scan_context: Dict[str, Any], kwargs: Dict[str, Any] = {}):
         """
         Runs a specific scanner class.
 
@@ -26,14 +26,14 @@ class ScanManager:
             scan_context: The dictionary to store scan results.
             kwargs: Additional arguments for the scanner's scan method.
         """
-        if kwargs is None:
-            kwargs = {}
 
-        scanner_name = ScannerClass.NAME
-        task_id = self.progress.add_task(f"[cyan]Scanning {scanner_name} for {target}...[/cyan]", total=1)
+        temp_task_id = self.progress.add_task(f"[cyan]Initializing scanner for {target}...[/cyan]", total=1)
+        scanner_instance = ScannerClass(self.progress, temp_task_id, self.browser)
+        scanner_name = scanner_instance.name
+        
+        self.progress.update(temp_task_id, description=f"[cyan]Scanning {scanner_name} for {target}...[/cyan]")
 
         try:
-            scanner_instance = ScannerClass(self.progress, task_id, self.browser)
             result = await scanner_instance.scan(target, **kwargs)
             
             context_key = scanner_name.lower().replace(" ", "_")
@@ -41,12 +41,12 @@ class ScanManager:
             if "osint_keywords" in result:
                 scan_context["osint_keywords"].update(result["osint_keywords"])
 
-            self.progress.update(task_id, description=f"[green]Finished {scanner_name} for {target}.[/green]", completed=1)
+            self.progress.update(temp_task_id, description=f"[green]Finished {scanner_name} for {target}.[/green]", completed=1)
         except ScannerError as e:
             logger.error(f"Error in {scanner_name} for {target}: {e}")
-            self.progress.update(task_id, description=f"[red]Error in {scanner_name} for {target}.[/red]", completed=1)
-            scan_context[ScannerClass.NAME.lower().replace(" ", "_")] = {"error": str(e)}
+            self.progress.update(temp_task_id, description=f"[red]Error in {scanner_name} for {target}.[/red]", completed=1)
+            scan_context[context_key] = {"error": str(e)}
         except Exception as e:
             logger.error(f"An unexpected error occurred in {scanner_name} for {target}: {e}", exc_info=True)
-            self.progress.update(task_id, description=f"[red]Unexpected error in {scanner_name} for {target}.[/red]", completed=1)
-            scan_context[ScannerClass.NAME.lower().replace(" ", "_")] = {"error": "An unexpected error occurred."}
+            self.progress.update(temp_task_id, description=f"[red]Unexpected error in {scanner_name} for {target}.[/red]", completed=1)
+            scan_context[context_key] = {"error": "An unexpected error occurred."}

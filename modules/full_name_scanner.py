@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List
 from rich.progress import Progress
 from playwright.async_api import Browser, BrowserContext, TimeoutError as PlaywrightTimeoutError
 from modules.core.base_scanner import BaseScanner
-from modules.sites_manager import sites_manager # Import the singleton instance
+from modules.sites_manager import sites_manager
 
 from modules.core.errors import NetworkError, ScannerError
 from modules import config
@@ -19,17 +19,27 @@ class FullNameScanner(BaseScanner):
 
     def __init__(self, progress: Progress, task_id, browser: Optional[Browser] = None):
         super().__init__(progress, task_id, browser)
-        self.sites_manager = sites_manager # Use the imported singleton
+        self.sites_manager = sites_manager
+        self.name = "Full Name Scan"
 
     NAME: str = "Full Name Scan"
 
     async def scan(self, target: str, **kwargs) -> Dict[str, Any]:
-        full_name = kwargs.get("full_name", "")
+        full_name = target  # The target parameter contains the full name
         first_name = kwargs.get("first_name", "")
         middle_name = kwargs.get("middle_name", "")
         last_name = kwargs.get("last_name", "")
         aliases = kwargs.get("aliases", [])
         country = kwargs.get("country", "")
+
+        # If only full_name is provided, try to split it into components
+        if full_name and not (first_name or last_name):
+            name_parts = full_name.strip().split()
+            if len(name_parts) >= 2:
+                first_name = name_parts[0]
+                last_name = name_parts[-1]
+                if len(name_parts) > 2:
+                    middle_name = " ".join(name_parts[1:-1])
 
         display_name = full_name
         if first_name and last_name:
@@ -44,7 +54,12 @@ class FullNameScanner(BaseScanner):
 
         if not country_sites:
             self.progress.update(self.task_id, description=f"[bold red]No full name sites found for {country}.[/bold red]")
+            # Debug: Check what countries are available
+            all_countries = [cs.country for cs in self.sites_manager._full_name_sites_data]
+            logger.warning(f"No sites found for country '{country}'. Available countries: {all_countries}")
             return results
+
+        logger.info(f"Found {len(country_sites)} sites for country '{country}': {[s.name for s in country_sites]}")
 
         tasks = []
         basic_semaphore = asyncio.Semaphore(config.Config.BASIC_CHECK_CONCURRENCY)
@@ -104,7 +119,12 @@ class FullNameScanner(BaseScanner):
                         logger.error(f"Error during full name scan: {res}")
                         results["errors"].append(str(res))
                     elif res.get("found"):
+                        logger.info(f"Found result on {res['name']}: {res['url']}")
                         results["found_on"].append({"name": res["name"], "url": res["url"]})
+                    else:
+                        logger.debug(f"No result found on {res.get('name', 'Unknown')}: {res.get('url', 'Unknown')}")
+                        if res.get("error"):
+                            logger.debug(f"Error: {res['error']}")
         finally:
             if context:
                 await context.close()
@@ -147,11 +167,15 @@ class FullNameScanner(BaseScanner):
                     ) as response:
                         content = await response.text()
                         
-                        if site.noResult.type == "contains":
-                            found = site.noResult.value.lower() not in content.lower()
-                        elif site.noResult.type == "status_code":
-                            found = response.status != int(site.noResult.value)
+                        if site.noResult and hasattr(site.noResult, 'type') and hasattr(site.noResult, 'value'):
+                            if site.noResult.type == "contains":
+                                found = site.noResult.value.lower() not in content.lower()
+                            elif site.noResult.type == "status_code":
+                                found = response.status != int(site.noResult.value)
+                            else:
+                                found = 200 <= response.status < 300
                         else:
+                            # Default behavior if noResult is not configured
                             found = 200 <= response.status < 300
 
                         if found:
@@ -161,16 +185,14 @@ class FullNameScanner(BaseScanner):
 
             except (asyncio.TimeoutError, aiohttp.ClientConnectorError, aiohttp.ClientResponseError) as e:
                 logger.warning(f"Attempt {attempt + 1} for {site_name}: Network error - {type(e).__name__}. Retrying...")
-                if attempt == retries:
-                    raise NetworkError(f"Error checking basic site {site_name}: {type(e).__name__}", self.name, e)
+                return {"name": site_name, "url": url, "found": False, "method": site.method, "error": str(e)}
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1} for {site_name}: Unexpected error - {type(e).__name__}. Retrying...")
-                if attempt == retries:
-                    raise ScannerError(f"Error checking basic site {site_name}: {type(e).__name__}", self.name, e)
+                return {"name": site_name, "url": url, "found": False, "method": site.method, "error": str(e)}
             finally:
                 self.progress.update(self.task_id, advance=1)
 
-        return {"name": site_name, "url": url, "found": found, "method": site.method.value}
+        return {"name": site_name, "url": url, "found": found, "method": site.method}
 
     async def _check_site_dynamic(
         self,
@@ -208,16 +230,20 @@ class FullNameScanner(BaseScanner):
                         else route.continue_(),
                     )
 
-                    response = await page.goto(url, timeout=timeout * 1000, wait_until="load")
+                    response = await page.goto(url, timeout=60000, wait_until="networkidle")
 
                     content = await page.content()
                     status = response.status if response else 0
 
-                    if site.noResult.type == "contains":
-                        found = site.noResult.value.lower() not in content.lower()
-                    elif site.noResult.type == "status_code":
-                        found = status != int(site.noResult.value)
+                    if site.noResult and hasattr(site.noResult, 'type') and hasattr(site.noResult, 'value'):
+                        if site.noResult.type == "contains":
+                            found = site.noResult.value.lower() not in content.lower()
+                        elif site.noResult.type == "status_code":
+                            found = status != int(site.noResult.value)
+                        else:
+                            found = 200 <= status < 300
                     else:
+                        # Default behavior if noResult is not configured
                         found = 200 <= status < 300
 
                     if found:
@@ -227,12 +253,10 @@ class FullNameScanner(BaseScanner):
 
             except PlaywrightTimeoutError as e:
                 logger.warning(f"Attempt {attempt + 1} for {site_name}: Timeout checking dynamic site - {type(e).__name__}. Retrying...")
-                if attempt == retries:
-                    raise NetworkError(f"Timeout checking dynamic site {site_name}: {type(e).__name__}", self.name, e)
+                return {"name": site_name, "url": url, "found": False, "method": CheckMethods.DYNAMIC.value, "error": str(e)}
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1} for {site_name}: Unexpected error checking dynamic site - {type(e).__name__}. Retrying...")
-                if attempt == retries:
-                    raise ScannerError(f"Error checking dynamic site {site_name}: {type(e).__name__}", self.name, e)
+                return {"name": site_name, "url": url, "found": False, "method": CheckMethods.DYNAMIC.value, "error": str(e)}
             finally:
                 if page:
                     await page.close()

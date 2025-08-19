@@ -75,4 +75,4 @@ pytest
 
 ## License
 
-This project is distributed under the [LICENSE_TYPE] License. Refer to the `LICENSE` file for complete terms.
+This project is distributed under the MIT License. Refer to the `LICENSE` file for complete terms.

@@ -14,8 +14,9 @@ Usage:
 
 import logging
 from rich.logging import RichHandler
+from rich.console import Console
 
-def setup_logging(level=logging.INFO):
+def setup_logging(level=logging.INFO, console: Console = None):
     """
     Configures the root logger for the application.
 
@@ -26,10 +27,24 @@ def setup_logging(level=logging.INFO):
     Args:
         level (int): The minimum logging level to be processed.
                      Defaults to `logging.INFO`.
+        console (Console, optional): A Rich Console instance to use for logging.
+                                     If None, a default Console will be used.
     """
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler(rich_tracebacks=True)]
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+
+    if root_logger.handlers:
+        for handler in list(root_logger.handlers):
+            root_logger.removeHandler(handler)
+
+    handler = RichHandler(
+        rich_tracebacks=True,
+        console=console,
+        show_time=True,
+        show_level=True,
+        show_path=True,
+        enable_link_path=True
     )
+    formatter = logging.Formatter(fmt="%(message)s", datefmt="[%X]")
+    handler.setFormatter(formatter)
+    root_logger.addHandler(handler)
