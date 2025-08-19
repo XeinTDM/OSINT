@@ -23,7 +23,6 @@ from jinja2 import Environment, FileSystemLoader
 
 logger = logging.getLogger(__name__)
 
-# Set up Jinja2 environment
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 
@@ -37,7 +36,6 @@ def save_html_report(results: Dict[str, Any], filename: str):
             or results.get("target_domain_or_ip")
             or results.get("target_phone_number", "Unknown Target")
         )
-        # Filter out non-scan results for HTML report iteration
         scan_results_only = {k: v for k, v in results.items() if k not in ["target_username", "target_email", "target_domain_or_ip", "target_phone_number", "osint_keywords"]}
 
         template = jinja_env.get_template("report_template.html")

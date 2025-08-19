@@ -11,6 +11,5 @@ keys without having to modify the core application logic.
 
 import os
 
-# API Keys
 HIBP_API_KEY = os.getenv("HIBP_API_KEY")
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")

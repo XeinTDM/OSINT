@@ -16,7 +16,6 @@ class SocialMediaScanner(BaseScanner):
         """Asynchronously fetches user information from the Twitter API v2."""
         self.progress.update(self.task_id, description=f"[bold yellow]Scanning Twitter profile: {username}...[/bold yellow]")
 
-        # Use bearer_token from config if not provided as argument
         bearer_token = bearer_token or config.Config.TWITTER_BEARER_TOKEN
 
         if not bearer_token:

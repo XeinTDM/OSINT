@@ -41,7 +41,6 @@ async def main_scan_logic(args: Dict[str, Any], sites_data: list):
     if args.get("phone_number"):
         scan_context["target_phone_number"] = args["phone_number"]
 
-    # Add API keys from config if not already present in args
     if "hibp_key" not in args and config.Config.HIBP_API_KEY:
         args["hibp_key"] = config.Config.HIBP_API_KEY
     if "twitter_bearer_token" not in args and config.Config.TWITTER_BEARER_TOKEN:

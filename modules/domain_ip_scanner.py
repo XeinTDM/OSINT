@@ -35,13 +35,11 @@ class DomainIPScanner(BaseScanner):
         """Attempts to connect to a single port and returns the port number if successful."""
         async with semaphore:
             try:
-                # 0.5 second timeout for each port
                 reader, writer = await asyncio.wait_for(asyncio.open_connection(target, port), timeout=0.5)
                 writer.close()
                 await writer.wait_closed()
                 return port
             except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
-                # Port is closed or host is unreachable
                 return None
             except Exception as e:
                 logger.error(f"Error scanning port {port} on {target}: {e}")
@@ -55,10 +53,9 @@ class DomainIPScanner(BaseScanner):
             ipaddress.ip_address(target)
             is_ip = True
         except ValueError:
-            pass # Not an IP address
+            pass
 
         if not is_ip:
-            # WHOIS Lookup (still synchronous, run in executor)
             try:
                 loop = asyncio.get_running_loop()
                 w = await loop.run_in_executor(None, whois.whois, target)
@@ -78,9 +75,8 @@ class DomainIPScanner(BaseScanner):
                 else:
                     raise NetworkError(f"WHOIS lookup failed: {type(e).__name__} - {e}", self.name, e)
 
-            # DNS Recon (asynchronous with aiodns)
             dns_records: Dict[str, Union[str, List[str]]] = {}
-            resolver = aiodns.DNSResolver() # Changed to aiodns.DNSResolver()
+            resolver = aiodns.DNSResolver()
             record_types = ["A", "AAAA", "MX", "TXT", "NS", "SOA", "CNAME"]
             for r_type in record_types:
                 try:
@@ -92,17 +88,13 @@ class DomainIPScanner(BaseScanner):
                     raise NetworkError(f"Unexpected error during DNS lookup for {r_type} record: {e}", self.name, e)
             results["dns"] = dns_records
 
-        # Port Scanning (asynchronous and concurrent)
         ports_to_scan = [21, 22, 25, 80, 110, 143, 443, 465, 587, 993, 995, 3306, 5432, 8080]
-        # Limit concurrent port scans to avoid overwhelming the target or local resources
-        port_scan_semaphore = asyncio.Semaphore(50) # Example: 50 concurrent connections
+        port_scan_semaphore = asyncio.Semaphore(50)
 
         port_scan_tasks = [
             self._scan_port(target, port, port_scan_semaphore) for port in ports_to_scan
         ]
-        # Run all port scan tasks concurrently
         open_ports_results = await asyncio.gather(*port_scan_tasks)
-        # Filter out None values (closed/unreachable ports) and sort the open ports
         results["open_ports"] = sorted([p for p in open_ports_results if p is not None])
 
         return results

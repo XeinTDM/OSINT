@@ -21,7 +21,6 @@ async def run_scans(args: Dict[str, Any]):
     """Main function to orchestrate the OSINT scan based on selected options."""
     scan_context: Dict[str, Any] = {"osint_keywords": {}}
 
-    # Add API keys from config if not already present in args
     if "hibp_key" not in args and config.Config.HIBP_API_KEY:
         args["hibp_key"] = config.Config.HIBP_API_KEY
     if "twitter_bearer_token" not in args and config.Config.TWITTER_BEARER_TOKEN:
@@ -89,8 +88,6 @@ async def run_full_name_scan(full_name: str, country: str):
             print("           FULL NAME SCAN COMPLETE - REPORT")
             print("=" * 50 + "\n")
             report_generator.generate_cli_report(scan_context)
-            # For full name scan, we might want to save a specific report format
-            # For now, just CLI report.
 
     except Exception as e:
         logger.error(f"An error occurred during the full name scan: {e}", exc_info=True)

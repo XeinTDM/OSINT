@@ -43,10 +43,10 @@ class Site:
     placeholders: List[str]
     urlEncode: bool
     method: str
-    responseType: str # Moved before headers
+    responseType: str
     requiresJs: bool
     noResult: NoResult
-    headers: Dict[str, str] = field(default_factory=dict) # Moved after responseType
+    headers: Dict[str, str] = field(default_factory=dict)
     resultMatcher: Optional[ResultMatcher] = None
     extract: Optional[Extraction] = None
     pagination: Optional[Pagination] = None
@@ -58,10 +58,10 @@ class Site:
     legal: Optional[Legal] = None
     tags: List[str] = field(default_factory=list)
     notes: Optional[str] = None
-    advanced_placeholders: List[str] = field(default_factory=list) # New field for advanced search parameters
+    advanced_placeholders: List[str] = field(default_factory=list)
 
 @dataclass
 class CountrySites:
     country: str
-    sites: List[Site] # Moved before country_code
+    sites: List[Site]
     country_code: Optional[str] = None

@@ -8,6 +8,5 @@ manage and update them without having to modify the core application logic.
 
 import os
 
-# Paths
 SITES_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "sites.json")
 FULL_NAME_SITES_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "full_name_sites.json")

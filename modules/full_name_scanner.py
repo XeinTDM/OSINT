@@ -27,7 +27,7 @@ class FullNameScanner(BaseScanner):
         first_name = kwargs.get("first_name", "")
         middle_name = kwargs.get("middle_name", "")
         last_name = kwargs.get("last_name", "")
-        aliases = kwargs.get("aliases", []) # New line for aliases
+        aliases = kwargs.get("aliases", [])
         country = kwargs.get("country", "")
 
         display_name = full_name
@@ -57,7 +57,6 @@ class FullNameScanner(BaseScanner):
             async with aiohttp.ClientSession() as session:
                 for site in country_sites:
                     if site.active:
-                        # Determine the query based on site placeholders
                         query_params = {}
                         advanced_search = kwargs.get("advanced_search", False)
                         city = kwargs.get("city", "")
@@ -75,7 +74,7 @@ class FullNameScanner(BaseScanner):
                                 tasks.append(self._check_site_dynamic(context, site, dynamic_semaphore, **query_params))
                             else:
                                 logger.warning(f"Skipping site {site.name} due to unsupported check method or missing browser context.")
-                        else: # Site uses a single query parameter
+                        else:
                             name_variations = []
                             if middle_name:
                                 name_variations.append(f"{first_name} {middle_name} {last_name}")
@@ -83,12 +82,11 @@ class FullNameScanner(BaseScanner):
                             else:
                                 name_variations.append(full_name)
                             
-                            # Add aliases to name variations
                             for alias in aliases:
                                 name_variations.append(alias)
 
                             for name_to_scan in name_variations:
-                                query_params_for_variation = {"query": name_to_scan} # Create new dict for each variation
+                                query_params_for_variation = {"query": name_to_scan}
                                 if not site.requiresJs:
                                     tasks.append(self._check_site_basic(session, site, basic_semaphore, **query_params_for_variation))
                                 elif site.requiresJs and context:
@@ -128,17 +126,11 @@ class FullNameScanner(BaseScanner):
         url = site.urlTemplate.format(**kwargs)
         if site.urlEncode:
             from urllib.parse import quote_plus
-            # Apply urlEncode to each value in kwargs before formatting
             encoded_kwargs = {k: quote_plus(str(v)) for k, v in kwargs.items()}
             url = site.urlTemplate.format(**encoded_kwargs)
 
-        # Use site's headers, fallback to default User-Agent if not specified
         headers = site.headers if site.headers else {"User-Agent": config.Config.USER_AGENT}
-        
-        # Use site's timeout, fallback to default 45 seconds
         timeout = site.timeoutSeconds if site.timeoutSeconds else 45
-
-        # Implement retries
         retries = site.retries if site.retries is not None else 0
         
         found = False
@@ -154,15 +146,13 @@ class FullNameScanner(BaseScanner):
                     ) as response:
                         content = await response.text()
                         
-                        # Check for noResult
-                        if site.noResult[0].type == "contains": # Access first element of noResult list
+                        if site.noResult[0].type == "contains":
                             found = site.noResult[0].value.lower() not in content.lower()
-                        elif site.noResult[0].type == "status_code": # Access first element of noResult list
+                        elif site.noResult[0].type == "status_code":
                             found = response.status != int(site.noResult[0].value)
-                        else: # Default to checking for 2xx status codes if noResult type is unknown
+                        else:
                             found = 200 <= response.status < 300
 
-                        # If found, break from retry loop
                         if found:
                             break
                         else:
@@ -177,7 +167,7 @@ class FullNameScanner(BaseScanner):
                 if attempt == retries:
                     raise ScannerError(f"Error checking basic site {site_name}: {type(e).__name__}", self.name, e)
             finally:
-                self.progress.update(self.task_id, advance=1) # Update progress on each attempt
+                self.progress.update(self.task_id, advance=1)
 
         return {"name": site_name, "url": url, "found": found, "method": site.method}
 
@@ -195,14 +185,10 @@ class FullNameScanner(BaseScanner):
         url = site.urlTemplate.format(**kwargs)
         if site.urlEncode:
             from urllib.parse import quote_plus
-            # Apply urlEncode to each value in kwargs before formatting
             encoded_kwargs = {k: quote_plus(str(v)) for k, v in kwargs.items()}
             url = site.urlTemplate.format(**encoded_kwargs)
 
-        # Use site's timeout, fallback to default 45 seconds
         timeout = site.timeoutSeconds if site.timeoutSeconds else 45
-
-        # Implement retries
         retries = site.retries if site.retries is not None else 0
         
         found = False
@@ -211,7 +197,6 @@ class FullNameScanner(BaseScanner):
             try:
                 async with semaphore:
                     page = await context.new_page()
-                    # Set headers for the page if provided in site config
                     if site.headers:
                         await page.set_extra_http_headers(site.headers)
 
@@ -222,20 +207,18 @@ class FullNameScanner(BaseScanner):
                         else route.continue_(),
                     )
 
-                    response = await page.goto(url, timeout=timeout * 1000, wait_until="load") # Playwright timeout is in ms
+                    response = await page.goto(url, timeout=timeout * 1000, wait_until="load")
 
                     content = await page.content()
                     status = response.status if response else 0
 
-                    # Check for noResult
-                    if site.noResult[0].type == "contains": # Access first element of noResult list
+                    if site.noResult[0].type == "contains":
                         found = site.noResult[0].value.lower() not in content.lower()
-                    elif site.noResult[0].type == "status_code": # Access first element of noResult list
+                    elif site.noResult[0].type == "status_code":
                         found = status != int(site.noResult[0].value)
-                    else: # Default to checking for 2xx status codes if noResult type is unknown
+                    else:
                         found = 200 <= status < 300
 
-                    # If found, break from retry loop
                     if found:
                         break
                     else:
@@ -252,7 +235,7 @@ class FullNameScanner(BaseScanner):
             finally:
                 if page:
                     await page.close()
-                self.progress.update(self.task_id, advance=1) # Update progress on each attempt
+                self.progress.update(self.task_id, advance=1)
 
         return {"name": site_name, "url": url, "found": found, "method": "DYNAMIC"}
 

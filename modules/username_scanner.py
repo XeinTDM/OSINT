@@ -51,7 +51,6 @@ class UsernameScanner(BaseScanner):
                 for site in basic_sites:
                     tasks.append(self._check_site_basic(session, site, username, basic_semaphore))
 
-                # Use return_exceptions=True to gather all results, including exceptions
                 scan_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for res in scan_results:
@@ -99,7 +98,7 @@ class UsernameScanner(BaseScanner):
                         found = 200 <= response.status < 300
 
                     if check_type == CheckTypes.POSITIVE.value:
-                        found = not found # Invert logic for positive checks
+                        found = not found
 
                     return {"name": site["name"], "url": url, "found": found, "method": CheckMethods.BASIC.value}
 

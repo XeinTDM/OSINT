@@ -19,7 +19,6 @@ class SitesManager:
 
     def _load_sites_data(self):
         """Loads the sites data from the local sites.json and full_name_sites.json files."""
-        # Load username sites
         if not os.path.exists(paths.SITES_JSON_PATH):
             logger.warning("sites.json not found. Attempting to create a default file.")
             self._create_default_username_sites_json()
@@ -31,7 +30,6 @@ class SitesManager:
             logger.error(f"Error loading sites.json: {e}. Returning empty username sites.")
             self._username_sites_data = []
 
-        # Load full name sites
         if not os.path.exists(paths.FULL_NAME_SITES_JSON_PATH):
             logger.warning("full_name_sites.json not found. Attempting to create a default file.")
             self._create_default_full_name_sites_json()
@@ -40,7 +38,7 @@ class SitesManager:
             with open(paths.FULL_NAME_SITES_JSON_PATH, "r", encoding="utf-8") as f:
                 raw_data = json.load(f)
                 parsed_data = []
-                if isinstance(raw_data, list): # Ensure raw_data is a list
+                if isinstance(raw_data, list):
                     for country_data in raw_data:
                         sites = []
                         for site_info in country_data.get("sites", []):
@@ -169,12 +167,12 @@ class SitesManager:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=10) as response:
-                    response.raise_for_status()  # Raise an exception for bad status codes
+                    response.raise_for_status()
                     new_sites_content = await response.text()
 
             with open(paths.SITES_JSON_PATH, "w", encoding="utf-8") as f:
                 f.write(new_sites_content)
-            self._username_sites_data = json.loads(new_sites_content).get("username_sites", []) # Update in-memory data
+            self._username_sites_data = json.loads(new_sites_content).get("username_sites", [])
             logger.info("sites.json updated successfully!")
             return True
         except aiohttp.ClientError as e:
@@ -189,12 +187,12 @@ class SitesManager:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=10) as response:
-                    response.raise_for_status()  # Raise an exception for bad status codes
+                    response.raise_for_status()
                     new_sites_content = await response.text()
 
             with open(paths.FULL_NAME_SITES_JSON_PATH, "w", encoding="utf-8") as f:
                 f.write(new_sites_content)
-            self._full_name_sites_data = json.loads(new_sites_content) # Update in-memory data
+            self._full_name_sites_data = json.loads(new_sites_content)
             logger.info("full_name_sites.json updated successfully!")
             return True
         except aiohttp.ClientError as e:
@@ -205,7 +203,6 @@ class SitesManager:
 
     async def ensure_sites_json_exists(self):
         """Ensures sites.json and full_name_sites.json exist and are loaded. Attempts to update from URL if not found or empty."""
-        # Check username sites
         if not self._username_sites_data:
             logger.warning("Username sites data is empty or missing. Attempting to fetch from URL...")
             await self.update_sites_json_from_url()
@@ -213,10 +210,8 @@ class SitesManager:
                 logger.error("Failed to load username sites. Using empty default data.")
                 self._username_sites_data = []
 
-        # Check full name sites
         if not self._full_name_sites_data:
             logger.warning("Full name sites data is empty or missing. Using empty default data.")
             self._full_name_sites_data = []
 
-# Instantiate the manager for global access if needed, or pass it around
 sites_manager = SitesManager()

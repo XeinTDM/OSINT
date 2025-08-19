@@ -9,14 +9,12 @@ from rich.progress import Progress
 
 class TestDomainIPScanner(unittest.IsolatedAsyncioTestCase):
 
-    # Define mock exception classes within the test class
     class MockDNSError(Exception):
         pass
 
     def setUp(self):
         self.mock_progress = MagicMock(spec=Progress)
         self.mock_task_id = 1
-        # Pass the mock_progress and mock_task_id to the scanner instance
         self.scanner = DomainIPScanner(progress=self.mock_progress, task_id=self.mock_task_id)
 
     def test_normalize_whois_dates(self):
@@ -52,10 +50,9 @@ class TestDomainIPScanner(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(result)
 
     @patch('modules.domain_ip_scanner.whois')
-    @patch('modules.domain_ip_scanner.aiodns') # Patch aiodns module directly
+    @patch('modules.domain_ip_scanner.aiodns')
     @patch.object(DomainIPScanner, '_scan_port', new_callable=AsyncMock)
     async def test_scan_domain_or_ip_async_domain(self, mock_scan_port, mock_aiodns, mock_whois):
-        # Mock WHOIS
         mock_whois_result = MagicMock()
         mock_whois_result.registrar = "Example Registrar"
         mock_whois_result.creation_date = "2020-01-01"
@@ -64,10 +61,8 @@ class TestDomainIPScanner(unittest.IsolatedAsyncioTestCase):
         mock_whois_result.emails = ["abuse@example.com"]
         mock_whois.whois.return_value = mock_whois_result
 
-        # Assign our mock exception to the patched module
         mock_aiodns.error.DNSError = self.MockDNSError
 
-        # Mock DNS Resolver
         mock_resolver_instance = mock_aiodns.DNSResolver.return_value
         mock_resolver_instance.query = AsyncMock()
         mock_resolver_instance.query.side_effect = [
@@ -77,13 +72,10 @@ class TestDomainIPScanner(unittest.IsolatedAsyncioTestCase):
             [MagicMock(strings=['v=spf1 include:_spf.example.com ~all'])], # TXT record
             [MagicMock(host='ns1.example.com')], # NS record
             [MagicMock(mname='ns1.example.com')], # SOA record
-            self.MockDNSError, # CNAME error - use our mock exception
+            self.MockDNSError, # CNAME error
         ]
 
-        # Mock _scan_port
-        # There are 14 ports to scan in domain_ip_scanner.py
-        # [21, 22, 25, 80, 110, 143, 443, 465, 587, 993, 995, 3306, 5432, 8080]
-        mock_scan_port.side_effect = [80, 443] + [None] * 12 # Simulate open ports 80, 443, rest closed
+        mock_scan_port.side_effect = [80, 443] + [None] * 12
 
         target = "example.com"
         with self.assertRaises(NetworkError) as cm:
@@ -92,25 +84,22 @@ class TestDomainIPScanner(unittest.IsolatedAsyncioTestCase):
 
     @patch.object(DomainIPScanner, '_scan_port', new_callable=AsyncMock)
     async def test_scan_domain_or_ip_async_ip(self, mock_scan_port):
-        # Mock _scan_port
-        # There are 14 ports to scan in domain_ip_scanner.py
-        mock_scan_port.side_effect = [22, 80] + [None] * 12 # Simulate open ports 22, 80, rest closed
+        mock_scan_port.side_effect = [22, 80] + [None] * 12
 
         target = "192.0.2.1"
         results = await self.scanner._scan_domain_or_ip_async(target)
 
-        self.assertNotIn("whois", results) # WHOIS should be skipped for IP
-        self.assertNotIn("dns", results) # DNS should be skipped for IP
+        self.assertNotIn("whois", results)
+        self.assertNotIn("dns", results)
         self.assertIn("open_ports", results)
         self.assertListEqual(results["open_ports"], [22, 80])
 
     @patch('modules.domain_ip_scanner.whois')
-    @patch('modules.domain_ip_scanner.aiodns') # Patch aiodns module directly
+    @patch('modules.domain_ip_scanner.aiodns')
     @patch('whois.parser.PywhoisError')
     async def test_scan_domain_or_ip_async_whois_error(self, mock_pywhois_error, mock_aiodns, mock_whois):
-        # Mock DNS Resolver to prevent actual lookups
         mock_resolver_instance = mock_aiodns.DNSResolver.return_value
-        mock_resolver_instance.query = AsyncMock(return_value=[]) # Return empty list for DNS queries
+        mock_resolver_instance.query = AsyncMock(return_value=[])
 
         mock_whois.whois.side_effect = PywhoisError("WHOIS parse error")
         with self.assertRaises(ParsingError) as cm:
@@ -125,7 +114,6 @@ class TestDomainIPScanner(unittest.IsolatedAsyncioTestCase):
         results = await self.scanner.scan(target)
 
         self.assertEqual(results, {"test": "data"})
-        # Assert on the mock_progress object directly
         self.mock_progress.update.assert_any_call(self.scanner.task_id, description=f"[bold yellow]Analyzing domain/IP: {target}...[/bold yellow]")
         self.mock_progress.update.assert_any_call(self.scanner.task_id, advance=1)
         self.mock_progress.update.assert_any_call(self.scanner.task_id, description=f"[bold green]Domain/IP analysis for {target} complete.[/bold green]")

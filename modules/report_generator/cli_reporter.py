@@ -107,7 +107,7 @@ def _add_email_results(tree: Tree, results: Dict[str, Any]):
             email_tree.add(f"[red]  Original Exception: {type(error_obj.original_exception).__name__} - {error_obj.original_exception}[/red]")
     elif breaches.get("breached"):
         breach_tree = email_tree.add(f"[bold red]🚨 Found in {breaches['count']} breaches![/bold red]")
-        for breach in breaches["breaches"][:10]:  # Limit display
+        for breach in breaches["breaches"][:10]:
             breach_tree.add(f"[red]- {breach}[/red]")
         if len(breaches["breaches"]) > 10:
             breach_tree.add(f"[red]...and {len(breaches['breaches']) - 10} more.[/red]")
@@ -180,6 +180,5 @@ def generate_cli_report(results: Dict[str, Any]):
     _add_username_results(main_tree, results)
     _add_email_results(main_tree, results)
     _add_twitter_results(main_tree, results)
-    # Add other scanners here in the future
 
     console.print(main_tree)
