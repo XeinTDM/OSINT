@@ -5,7 +5,7 @@ import json
 from typing import Dict, Any, Optional
 from modules import config
 from modules.core.base_scanner import BaseScanner
-from modules.core.errors import NetworkError, APIError, ParsingError, RateLimitError, AuthenticationError
+from modules.core.errors import NetworkError, APIError, ParsingError, AuthenticationError
 from modules.enums import ScannerNames
 
 logger = logging.getLogger(__name__)
@@ -33,11 +33,7 @@ class EmailScanner(BaseScanner):
             async with aiohttp.ClientSession() as session:
                 response = await self._query_hibp(session, url, headers)
 
-                if response.status == 429:
-                    retry_after = int(response.headers.get("Retry-After", "2"))
-                    logger.warning(f"Rate limited by HIBP. Waiting for {retry_after} seconds...")
-                    await asyncio.sleep(retry_after)
-                    raise RateLimitError(f"Rate limited by HIBP. Retrying after {retry_after} seconds.", self.name)
+                
 
                 if response.status == 200:
                     try:
@@ -67,6 +63,31 @@ class EmailScanner(BaseScanner):
         self.progress.update(self.task_id, description=f"[bold green]Email scan for {email} complete.[/bold green]")
         return {"breaches": result}
 
-    async def _query_hibp(self, session: aiohttp.ClientSession, url: str, headers: Dict[str, str]) -> aiohttp.ClientResponse:
-        """Helper function to query the HIBP API."""
-        return await session.get(url, headers=headers, timeout=15)
+    async def _query_hibp(self, session: aiohttp.ClientSession, url: str, headers: Dict[str, str], max_retries: int = 3, initial_delay: int = 2) -> aiohttp.ClientResponse:
+        """
+        Helper function to query the HIBP API with retry logic for rate limiting.
+        Implements exponential backoff.
+        """
+        for attempt in range(max_retries + 1):
+            try:
+                response = await session.get(url, headers=headers, timeout=15)
+                if response.status == 429:
+                    retry_after = int(response.headers.get("Retry-After", str(initial_delay * (2 ** attempt))))
+                    logger.warning(f"Rate limited by HIBP. Waiting for {retry_after} seconds before retrying (attempt {attempt + 1}/{max_retries + 1})...")
+                    await asyncio.sleep(retry_after)
+                    continue # Try again
+                response.raise_for_status() # Raise an exception for 4xx or 5xx status codes
+                return response
+            except aiohttp.ClientResponseError as e:
+                if e.status == 429: # This case is handled by the if block above, but good to have
+                    logger.warning("Rate limited by HIBP (ClientResponseError). Retrying...")
+                    await asyncio.sleep(initial_delay * (2 ** attempt))
+                    continue
+                raise # Re-raise other ClientResponseErrors
+            except (asyncio.TimeoutError, aiohttp.ClientConnectorError, aiohttp.ClientError) as e:
+                logger.warning(f"Network error during HIBP query (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                if attempt == max_retries:
+                    raise NetworkError(f"Failed to query HIBP API after {max_retries + 1} attempts.", self.name, e)
+                await asyncio.sleep(initial_delay * (2 ** attempt)) # Exponential backoff
+
+        raise APIError("Failed to query HIBP API after multiple retries due to unknown error.", self.name)

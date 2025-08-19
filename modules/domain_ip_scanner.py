@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Optional, Union
 from modules.core.base_scanner import BaseScanner
 from modules.core.errors import NetworkError, ParsingError
 from modules.enums import ScannerNames
+from modules import config
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class DomainIPScanner(BaseScanner):
         """Attempts to connect to a single port and returns the port number if successful."""
         async with semaphore:
             try:
-                reader, writer = await asyncio.wait_for(asyncio.open_connection(target, port), timeout=0.5)
+                reader, writer = await asyncio.wait_for(asyncio.open_connection(target, port), timeout=config.Config.PORT_SCAN_TIMEOUT)
                 writer.close()
                 await writer.wait_closed()
                 return port

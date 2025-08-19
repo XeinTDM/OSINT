@@ -5,11 +5,12 @@ from typing import Dict, Any, Optional, List
 from rich.progress import Progress
 from playwright.async_api import Browser, BrowserContext, TimeoutError as PlaywrightTimeoutError
 from modules.core.base_scanner import BaseScanner
-from modules.sites_manager import SitesManager
+from modules.sites_manager import sites_manager # Import the singleton instance
 
 from modules.core.errors import NetworkError, ScannerError
 from modules import config
 from modules.core.site_models import Site
+from modules.enums import CheckMethods
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class FullNameScanner(BaseScanner):
 
     def __init__(self, progress: Progress, task_id, browser: Optional[Browser] = None):
         super().__init__(progress, task_id, browser)
-        self.sites_manager = SitesManager()
+        self.sites_manager = sites_manager # Use the imported singleton
 
     NAME: str = "Full Name Scan"
 
@@ -146,10 +147,10 @@ class FullNameScanner(BaseScanner):
                     ) as response:
                         content = await response.text()
                         
-                        if site.noResult[0].type == "contains":
-                            found = site.noResult[0].value.lower() not in content.lower()
-                        elif site.noResult[0].type == "status_code":
-                            found = response.status != int(site.noResult[0].value)
+                        if site.noResult.type == "contains":
+                            found = site.noResult.value.lower() not in content.lower()
+                        elif site.noResult.type == "status_code":
+                            found = response.status != int(site.noResult.value)
                         else:
                             found = 200 <= response.status < 300
 
@@ -169,7 +170,7 @@ class FullNameScanner(BaseScanner):
             finally:
                 self.progress.update(self.task_id, advance=1)
 
-        return {"name": site_name, "url": url, "found": found, "method": site.method}
+        return {"name": site_name, "url": url, "found": found, "method": site.method.value}
 
     async def _check_site_dynamic(
         self,
@@ -212,10 +213,10 @@ class FullNameScanner(BaseScanner):
                     content = await page.content()
                     status = response.status if response else 0
 
-                    if site.noResult[0].type == "contains":
-                        found = site.noResult[0].value.lower() not in content.lower()
-                    elif site.noResult[0].type == "status_code":
-                        found = status != int(site.noResult[0].value)
+                    if site.noResult.type == "contains":
+                        found = site.noResult.value.lower() not in content.lower()
+                    elif site.noResult.type == "status_code":
+                        found = status != int(site.noResult.value)
                     else:
                         found = 200 <= status < 300
 
@@ -237,6 +238,6 @@ class FullNameScanner(BaseScanner):
                     await page.close()
                 self.progress.update(self.task_id, advance=1)
 
-        return {"name": site_name, "url": url, "found": found, "method": "DYNAMIC"}
+        return {"name": site_name, "url": url, "found": found, "method": CheckMethods.DYNAMIC.value}
 
     

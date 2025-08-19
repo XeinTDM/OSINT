@@ -29,3 +29,5 @@ __all__ = [
     "TWITTER_PROFILE_SCAN",
     "USERNAME_SCAN",
 ]
+
+FULL_NAME_SITES_URL = "https://raw.githubusercontent.com/XeinTDM/OSINT/main/data/full_name_sites.json"

@@ -3,4 +3,5 @@ class Config:
     TWITTER_BEARER_TOKEN = None
     BASIC_CHECK_CONCURRENCY = 10
     DYNAMIC_CHECK_CONCURRENCY = 5
+    PORT_SCAN_TIMEOUT = 1.0 # Seconds
     USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"

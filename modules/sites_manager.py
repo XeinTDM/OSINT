@@ -7,6 +7,7 @@ from typing import List
 from modules import paths
 from modules.core.site_models import CountrySites, Site
 from pydantic import ValidationError
+from modules.constants import FULL_NAME_SITES_URL
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ class SitesManager:
     """Manages the loading and access of OSINT sites data from sites.json and full_name_sites.json."""
 
     def __init__(self):
-        self._username_sites_data = []
+        self._username_sites_data: List[Site] = []
         self._full_name_sites_data: List[CountrySites] = []
 
     def _create_default_username_sites_json(self):
@@ -56,7 +57,7 @@ class SitesManager:
                     continue
         return parsed_data
 
-    def get_username_sites(self) -> list:
+    def get_username_sites(self) -> List[Site]:
         """Returns the list of username scanning sites."""
         return self._username_sites_data
 
@@ -77,9 +78,21 @@ class SitesManager:
                     response.raise_for_status()
                     new_sites_content = await response.text()
 
+            parsed_content = json.loads(new_sites_content)
             with open(paths.SITES_JSON_PATH, "w", encoding="utf-8") as f:
                 f.write(new_sites_content)
-            self._username_sites_data = json.loads(new_sites_content).get("username_sites", [])
+            
+            validated_sites = []
+            for site_data in parsed_content.get("username_sites", []):
+                try:
+                    validated_sites.append(Site.model_validate(site_data))
+                except ValidationError as e:
+                    logger.error(f"Validation error parsing username site data: {e}")
+                    continue
+                except Exception as e:
+                    logger.error(f"An unexpected error occurred during parsing username site data: {e}")
+                    continue
+            self._username_sites_data = validated_sites
             logger.info("sites.json updated successfully!")
             return True
         except aiohttp.ClientError as e:
@@ -97,9 +110,10 @@ class SitesManager:
                     response.raise_for_status()
                     new_sites_content = await response.text()
 
+            parsed_content = json.loads(new_sites_content)
             with open(paths.FULL_NAME_SITES_JSON_PATH, "w", encoding="utf-8") as f:
                 f.write(new_sites_content)
-            self._full_name_sites_data = json.loads(new_sites_content)
+            self._full_name_sites_data = self._parse_full_name_sites_data(parsed_content)
             logger.info("full_name_sites.json updated successfully!")
             return True
         except aiohttp.ClientError as e:
@@ -107,6 +121,40 @@ class SitesManager:
         except Exception as e:
             logger.error(f"An unexpected error occurred while updating full_name_sites.json: {e}")
         return False
+
+    def _load_username_sites_data_from_file(self) -> List[Site]:
+        try:
+            with open(paths.SITES_JSON_PATH, "r", encoding="utf-8") as f:
+                raw_data = json.load(f).get("username_sites", [])
+                validated_sites = []
+                for site_data in raw_data:
+                    try:
+                        validated_sites.append(Site.model_validate(site_data))
+                    except ValidationError as e:
+                        logger.error(f"Validation error parsing local username site data: {e}")
+                        continue
+                    except Exception as e:
+                        logger.error(f"An unexpected error occurred during parsing local username site data: {e}")
+                        continue
+                return validated_sites
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.error(f"Error loading sites.json: {e}.")
+            return []
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during sites.json parsing: {e}.")
+            return []
+
+    def _load_full_name_sites_data_from_file(self) -> List[CountrySites]:
+        try:
+            with open(paths.FULL_NAME_SITES_JSON_PATH, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+                return self._parse_full_name_sites_data(raw_data)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.error(f"Error loading full_name_sites.json: {e}.")
+            return []
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during full_name_sites.json parsing: {e}.")
+            return []
 
     async def ensure_sites_json_exists(self):
         """Ensures sites.json and full_name_sites.json exist and are loaded. Attempts to update from URL if not found or empty."""
@@ -116,12 +164,7 @@ class SitesManager:
                 logger.warning("sites.json not found. Creating a default file.")
                 self._create_default_username_sites_json()
 
-            try:
-                with open(paths.SITES_JSON_PATH, "r", encoding="utf-8") as f:
-                    self._username_sites_data = json.load(f).get("username_sites", [])
-            except (FileNotFoundError, json.JSONDecodeError) as e:
-                logger.error(f"Error loading sites.json: {e}. Attempting to fetch from URL.")
-                self._username_sites_data = [] # Ensure it's empty if loading failed
+            self._username_sites_data = self._load_username_sites_data_from_file()
 
             if not self._username_sites_data:
                 logger.warning("Username sites data is empty or missing after local load. Attempting to fetch from URL...")
@@ -136,25 +179,11 @@ class SitesManager:
                 logger.warning("full_name_sites.json not found. Creating a default file.")
                 self._create_default_full_name_sites_json()
 
-            try:
-                with open(paths.FULL_NAME_SITES_JSON_PATH, "r", encoding="utf-8") as f:
-                    raw_data = json.load(f)
-                    self._full_name_sites_data = self._parse_full_name_sites_data(raw_data)
-            except (FileNotFoundError, json.JSONDecodeError) as e:
-                logger.error(f"Error loading full_name_sites.json: {e}. Attempting to fetch from URL.")
-                self._full_name_sites_data = [] # Ensure it's empty if loading failed
-            except Exception as e:
-                logger.error(f"An unexpected error occurred during full_name_sites.json parsing: {e}. Attempting to fetch from URL.")
-                self._full_name_sites_data = []
+            self._full_name_sites_data = self._load_full_name_sites_data_from_file()
 
             if not self._full_name_sites_data:
                 logger.warning("Full name sites data is empty or missing after local load. Attempting to fetch from URL...")
-                # Assuming there's a default URL for full_name_sites.json or it's handled elsewhere
-                # For now, I'll use a placeholder URL if it's not defined.
-                # In a real scenario, I'd ask the user for this URL or check config.
-                # For this example, I'll assume it's the same base URL as sites.json but for full_name_sites.json
-                full_name_url = "https://raw.githubusercontent.com/XeinTDM/OSINT/main/data/full_name_sites.json"
-                await self.update_full_name_sites_json_from_url(full_name_url)
+                await self.update_full_name_sites_json_from_url(FULL_NAME_SITES_URL)
                 if not self._full_name_sites_data:
                     logger.error("Failed to load full name sites. Using empty default data.")
                     self._full_name_sites_data = []

@@ -33,6 +33,25 @@ from modules.core.exceptions import ScannerError
 
 console = Console(record=True)
 
+def _format_error_message(error_obj: Any, scanner_type: str) -> str:
+    """Formats an error object into a user-friendly message."""
+    error_message = "An unknown error occurred."
+    if isinstance(error_obj, NetworkError):
+        error_message = f"Network Error: {error_obj.args[0]}. Please check your internet connection."
+    elif isinstance(error_obj, ParsingError):
+        error_message = f"Data Parsing Error: {error_obj.args[0]}. The {scanner_type} response could not be understood."
+    elif isinstance(error_obj, APIError):
+        error_message = f"API Error: {error_obj.args[0]}. There was an issue with the {scanner_type} API."
+    elif isinstance(error_obj, RateLimitError):
+        error_message = f"Rate Limit Exceeded: {error_obj.args[0]}. Please try again later."
+    elif isinstance(error_obj, AuthenticationError):
+        error_message = f"Authentication Error: {error_obj.args[0]}. Please check your {scanner_type} API key/token."
+    elif isinstance(error_obj, ScannerError):
+        error_message = f"Scan Error: {error_obj.args[0]}"
+    else:
+        error_message = f"Unexpected Error: {error_obj}"
+    return error_message
+
 
 def _add_username_results(tree: Tree, results: Dict[str, Any]):
     if constants.USERNAME_SCAN.lower().replace(" ", "_") not in results:
@@ -43,21 +62,7 @@ def _add_username_results(tree: Tree, results: Dict[str, Any]):
 
     if "error" in scan_results:
         error_obj = scan_results["error"]
-        error_message = "An unknown error occurred."
-        if isinstance(error_obj, NetworkError):
-            error_message = f"Network Error: {error_obj.args[0]}. Please check your internet connection."
-        elif isinstance(error_obj, ParsingError):
-            error_message = f"Data Parsing Error: {error_obj.args[0]}. The site's response could not be understood."
-        elif isinstance(error_obj, APIError):
-            error_message = f"API Error: {error_obj.args[0]}. There was an issue with the API."
-        elif isinstance(error_obj, RateLimitError):
-            error_message = f"Rate Limit Exceeded: {error_obj.args[0]}. Please try again later."
-        elif isinstance(error_obj, AuthenticationError):
-            error_message = f"Authentication Error: {error_obj.args[0]}. Please check your API key."
-        elif isinstance(error_obj, ScannerError):
-            error_message = f"Scan Error: {error_obj.args[0]}"
-        else:
-            error_message = f"Unexpected Error: {error_obj}"
+        error_message = _format_error_message(error_obj, "site")
 
         user_tree.add(f"[bold red]Error: {error_message}[/bold red]")
         if hasattr(error_obj, 'original_exception') and error_obj.original_exception:
@@ -86,21 +91,7 @@ def _add_email_results(tree: Tree, results: Dict[str, Any]):
 
     if "error" in results[constants.EMAIL_SCAN.lower().replace(" ", "_")]:
         error_obj = results[constants.EMAIL_SCAN.lower().replace(" ", "_")]["error"]
-        error_message = "An unknown error occurred."
-        if isinstance(error_obj, NetworkError):
-            error_message = f"Network Error: {error_obj.args[0]}. Please check your internet connection."
-        elif isinstance(error_obj, ParsingError):
-            error_message = f"Data Parsing Error: {error_obj.args[0]}. The API response could not be understood."
-        elif isinstance(error_obj, APIError):
-            error_message = f"API Error: {error_obj.args[0]}. There was an issue with the HIBP API."
-        elif isinstance(error_obj, RateLimitError):
-            error_message = f"Rate Limit Exceeded: {error_obj.args[0]}. Please try again later."
-        elif isinstance(error_obj, AuthenticationError):
-            error_message = f"Authentication Error: {error_obj.args[0]}. Please check your HIBP API key."
-        elif isinstance(error_obj, ScannerError):
-            error_message = f"Scan Error: {error_obj.args[0]}"
-        else:
-            error_message = f"Unexpected Error: {error_obj}"
+        error_message = _format_error_message(error_obj, "HIBP")
 
         email_tree.add(f"[yellow]⚠️ Breach Check Failed: {error_message}[/yellow]")
         if hasattr(error_obj, 'original_exception') and error_obj.original_exception:
@@ -124,21 +115,7 @@ def _add_twitter_results(tree: Tree, results: Dict[str, Any]):
 
     if "error" in twitter_data:
         error_obj = twitter_data["error"]
-        error_message = "An unknown error occurred."
-        if isinstance(error_obj, NetworkError):
-            error_message = f"Network Error: {error_obj.args[0]}. Please check your internet connection."
-        elif isinstance(error_obj, ParsingError):
-            error_message = f"Data Parsing Error: {error_obj.args[0]}. The API response could not be understood."
-        elif isinstance(error_obj, APIError):
-            error_message = f"API Error: {error_obj.args[0]}. There was an issue with the Twitter API."
-        elif isinstance(error_obj, RateLimitError):
-            error_message = f"Rate Limit Exceeded: {error_obj.args[0]}. Please try again later."
-        elif isinstance(error_obj, AuthenticationError):
-            error_message = f"Authentication Error: {error_obj.args[0]}. Please check your Twitter Bearer Token."
-        elif isinstance(error_obj, ScannerError):
-            error_message = f"Scan Error: {error_obj.args[0]}"
-        else:
-            error_message = f"Unexpected Error: {error_obj}"
+        error_message = _format_error_message(error_obj, "Twitter")
 
         twitter_tree.add(f"[yellow]⚠️ {error_message}[/yellow]")
         if hasattr(error_obj, 'original_exception') and error_obj.original_exception:
@@ -164,6 +141,66 @@ def _add_twitter_results(tree: Tree, results: Dict[str, Any]):
     twitter_tree.add(table)
     twitter_tree.add(f"[link=https://twitter.com/{twitter_data['username']}]View Profile[/link]")
 
+def _add_phone_results(tree: Tree, results: Dict[str, Any]):
+    if constants.PHONE_NUMBER_ANALYSIS.lower().replace(" ", "_") not in results:
+        return
+
+    phone_data = results[constants.PHONE_NUMBER_ANALYSIS.lower().replace(" ", "_")]
+    phone_tree = tree.add("[bold purple]📞 Phone Number Analysis Results[/bold purple]")
+
+    if "error" in phone_data:
+        error_obj = phone_data["error"]
+        error_message = _format_error_message(error_obj, "phone number")
+        phone_tree.add(f"[red]Error: {error_message}[/red]")
+        if hasattr(error_obj, 'original_exception') and error_obj.original_exception:
+            phone_tree.add(f"[red]  Original Exception: {type(error_obj.original_exception).__name__} - {error_obj.original_exception}[/red]")
+        return
+
+    if phone_data.get("is_valid"):
+        phone_tree.add("[green]Is Valid: Yes[/green]")
+        phone_tree.add(f"Country: {phone_data.get('country', 'N/A')}")
+        phone_tree.add(f"Country Code: {phone_data.get('country_code', 'N/A')}")
+        phone_tree.add(f"National Number: {phone_data.get('national_number', 'N/A')}")
+        phone_tree.add(f"Carrier: {phone_data.get('carrier', 'N/A')}")
+        phone_tree.add(f"Timezone: {phone_data.get('timezone', 'N/A')}")
+    else:
+        phone_tree.add("[red]Is Valid: No[/red]")
+        phone_tree.add(f"[yellow]Reason: {phone_data.get('message', 'N/A')}[/yellow]")
+
+def _add_domain_ip_results(tree: Tree, results: Dict[str, Any]):
+    if constants.DOMAIN_IP_ANALYSIS.lower().replace(" ", "_") not in results:
+        return
+
+    domain_ip_data = results[constants.DOMAIN_IP_ANALYSIS.lower().replace(" ", "_")]
+    domain_ip_tree = tree.add("[bold blue]🌐 Domain/IP Analysis Results[/bold blue]")
+
+    if "error" in domain_ip_data:
+        error_obj = domain_ip_data["error"]
+        error_message = _format_error_message(error_obj, "domain/IP")
+        domain_ip_tree.add(f"[red]Error: {error_message}[/red]")
+        if hasattr(error_obj, 'original_exception') and error_obj.original_exception:
+            domain_ip_tree.add(f"[red]  Original Exception: {type(error_obj.original_exception).__name__} - {error_obj.original_exception}[/red]")
+        return
+
+    if "whois" in domain_ip_data:
+        whois_tree = domain_ip_tree.add("[bold cyan]WHOIS Information[/bold cyan]")
+        whois_data = domain_ip_data["whois"]
+        for key, value in whois_data.items():
+            whois_tree.add(f"{key.replace('_', ' ').title()}: {value}")
+
+    if "dns" in domain_ip_data:
+        dns_tree = domain_ip_tree.add("[bold cyan]DNS Records[/bold cyan]")
+        dns_data = domain_ip_data["dns"]
+        for record_type, records in dns_data.items():
+            if records:
+                dns_tree.add(f"[bold]{record_type}:[/bold] {', '.join(records)}")
+
+    if "open_ports" in domain_ip_data and domain_ip_data["open_ports"]:
+        ports_tree = domain_ip_tree.add("[bold cyan]Open Ports[/bold cyan]")
+        ports_tree.add(f"{', '.join(map(str, domain_ip_data['open_ports']))}")
+    elif "open_ports" in domain_ip_data:
+        domain_ip_tree.add("[yellow]No open ports found.[/yellow]")
+
 
 def generate_cli_report(results: Dict[str, Any]):
     """
@@ -180,5 +217,7 @@ def generate_cli_report(results: Dict[str, Any]):
     _add_username_results(main_tree, results)
     _add_email_results(main_tree, results)
     _add_twitter_results(main_tree, results)
+    _add_phone_results(main_tree, results)
+    _add_domain_ip_results(main_tree, results)
 
     console.print(main_tree)
