@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT Report for {{ target_id }}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 960px; margin: 20px auto; padding: 0 20px; background-color: #f4f7f6; }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; margin-top: 30px; }
+        .section { background-color: #fff; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: #fff; padding: 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h3 { margin-top: 0; color: #3498db; }
+        .found { color: #27ae60; font-weight: bold; }
+        .not-found { color: #c0392b; }
+        .error { color: #e74c3c; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #ecf0f1; }
+        tr:hover { background-color: #f5f5f5; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>OSINT Report for {{ target_id }}</h1>
+
+    {% if osint_keywords %}
+    <div class="section">
+        <h2>OSINT Keywords</h2>
+        <div class="grid-container">
+            {% for key, value in osint_keywords.items() %}
+                <div class="card">
+                    <h3>{{ key.replace("_", " ").title() }}</h3>
+                    <p>{{ value }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% for section_key, data in results.items() %}
+    <div class="section">
+        <h2>{{ section_key.replace("_", " ").title() }}</h2>
+        {% if data.error %}
+            <p class="error">⚠️ Error: {{ data.error }}</p>
+        {% else %}
+            {% if section_key == "username_scan" %}
+                <table>
+                    <tr><th>Site</th><th>URL</th></tr>
+                    {% for item in data.get("found", []) %}
+                    <tr><td>{{ item["name"] }}</td><td><a href="{{ item["url"] }}" target="_blank">{{ item["url"] }}</a></td></tr>
+                    {% endfor %}
+                </table>
+                {% if not data.get("found") %}
+                    <p class="not-found">No accounts found on checked sites.</p>
+                {% endif %}
+                {% if data.get("errors") %}
+                    <p class="error">Errors during scan:</p>
+                    <ul>
+                        {% for err in data["errors"] %}
+                        <li>{{ err }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% elif section_key == "email_scan" %}
+                {% if data.get("breaches") %}
+                    {% if data["breaches"].get("error") %}
+                        <p class="error">⚠️ Breach Check Failed: {{ data["breaches"]["error"] }}</p>
+                    {% elif data["breaches"].get("breached") %}
+                        <p class="found">🚨 Found in {{ data["breaches"]["count"] }} breaches!</p>
+                        <ul>
+                            {% for breach in data["breaches"]["breaches"][:10] %}
+                            <li>{{ breach }}</li>
+                            {% endfor %}
+                            {% if data["breaches"]["breaches"]|length > 10 %}
+                            <li>...and {{ data["breaches"]["breaches"]|length - 10 }} more.</li>
+                            {% endif %}
+                        </ul>
+                    {% else %}
+                        <p class="found">✅ No breaches found in HIBP database.</p>
+                    {% endif %}
+                {% endif %}
+            {% elif section_key == "twitter_profile_scan" %}
+                {% if not data.get("found") %}
+                    <p class="not-found">✅ No public Twitter profile found.</p>
+                {% else %}
+                    <div class="card">
+                        <h3>Profile Info</h3>
+                        <p><b>Name:</b> {{ data["name"] }} (@{{ data["username"] }})</p>
+                        <p><b>Description:</b> {{ data["description"] }}</p>
+                        <p><b>Verified:</b> {{ "Yes" if data["verified"] else "No" }}</p>
+                        <p><b>Location:</b> {{ data.get("location", "N/A") }}</p>
+                        <p><b>Joined:</b> {{ data["created_at"] }}</p>
+                        <p><b>Followers:</b> {{ data["followers"] }}</p>
+                        <p><b>Following:</b> {{ data["following"] }}</p>
+                        <p><b>Tweets:</b> {{ data["tweet_count"] }}</p>
+                        <p><a href="https://twitter.com/{{ data["username"] }}" target="_blank">View Profile</a></p>
+                    </div>
+                {% endif %}
+            {% elif section_key == "domain_ip_analysis" %}
+                {% if data.get("whois") %}
+                    <div class="card">
+                        <h3>WHOIS Information</h3>
+                        {% if data["whois"].get("error") %}
+                            <p class="error">⚠️ {{ data["whois"]["error"] }}</p>
+                        {% else %}
+                            {% for key, value in data["whois"].items() %}
+                                <p><b>{{ key.replace("_", " ").title() }}:</b> {{ value }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+                {% if data.get("dns") %}
+                    <div class="card">
+                        <h3>DNS Records</h3>
+                        <table>
+                            {% for r_type, records in data["dns"].items() %}
+                                <tr><td><b>{{ r_type }}:</b></td><td>{{ records }}</td></tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                {% endif %}
+                {% if data.get("open_ports") %}
+                    <div class="card">
+                        <h3>Open Ports</h3>
+                        {% if data["open_ports"] %}
+                            <p class="found">{{ data["open_ports"]|join(", ") }}</p>
+                        {% else %}
+                            <p class="not-found">No open ports found.</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% elif section_key == "phone_number_analysis" %}
+                <div class="card">
+                    <h3>Phone Number Analysis</h3>
+                    {% for key, value in data.items() %}
+                        <p><b>{{ key.replace("_", " ").title() }}:</b> {{ value }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+</html>

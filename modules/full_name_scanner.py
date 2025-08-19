@@ -1,0 +1,211 @@
+import asyncio
+import aiohttp
+import logging
+from typing import Dict, Any, Optional, List
+from rich.progress import Progress
+from playwright.async_api import Browser, BrowserContext, TimeoutError as PlaywrightTimeoutError
+from modules.core.base_scanner import BaseScanner
+from modules.sites_manager import SitesManager
+from modules.enums import CheckMethods, ErrorTypes, CheckTypes
+from modules.core.errors import NetworkError, ScannerError
+from modules import config
+from modules.core.site_models import Site # New import
+
+logger = logging.getLogger(__name__)
+
+class FullNameScanner(BaseScanner):
+    """Scanner for full name OSINT."""
+
+    def __init__(self, progress: Progress, task_id, browser: Optional[Browser] = None):
+        super().__init__(progress, task_id, browser)
+        self.sites_manager = SitesManager()
+
+    @property
+    def name(self) -> str:
+        return "Full Name Scan"
+
+    async def scan(self, full_name: str, country: str, **kwargs) -> Dict[str, Any]:
+        self.progress.update(self.task_id, description=f"[bold yellow]Scanning full name: {full_name} in {country}...[/bold yellow]")
+        results = {"full_name": full_name, "country": country, "found_on": [], "errors": []}
+
+        country_sites: List[Site] = self.sites_manager.get_full_name_sites_by_country(country)
+
+        if not country_sites:
+            self.progress.update(self.task_id, description=f"[bold red]No full name sites found for {country}.[/bold red]")
+            return results
+
+        tasks = []
+        basic_semaphore = asyncio.Semaphore(config.Config.BASIC_CHECK_CONCURRENCY)
+        dynamic_semaphore = asyncio.Semaphore(config.Config.DYNAMIC_CHECK_CONCURRENCY)
+
+        context = None
+        if self.browser:
+            context = await self.browser.new_context(user_agent=config.Config.USER_AGENT)
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                for site in country_sites: # Changed site_info to site
+                    if site.active: # Only process active sites
+                        if not site.requiresJs: # Check if it's a basic check
+                            tasks.append(self._check_site_basic(session, full_name, site, basic_semaphore))
+                        elif site.requiresJs and context: # Check if it's a dynamic check and browser context is available
+                            tasks.append(self._check_site_dynamic(context, full_name, site, dynamic_semaphore))
+                        else:
+                            logger.warning(f"Skipping site {site.name} due to unsupported check method or missing browser context.")
+                    else:
+                        logger.info(f"Skipping inactive site: {site.name}")
+
+
+                site_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                for res in site_results:
+                    if isinstance(res, Exception):
+                        logger.error(f"Error during full name scan: {res}")
+                        results["errors"].append(str(res))
+                    elif res.get("found"):
+                        results["found_on"].append({"name": res["name"], "url": res["url"]})
+        finally:
+            if context:
+                await context.close()
+            self.progress.update(self.task_id, advance=len(country_sites))
+
+        self.progress.update(self.task_id, description=f"[bold green]Full name scan for {full_name} in {country} complete.[/bold green]")
+        return results
+
+    async def _check_site_basic(
+        self,
+        session: aiohttp.ClientSession,
+        full_name: str,
+        site: Site, # Changed site_info to site
+        semaphore: asyncio.Semaphore,
+    ) -> Dict[str, Any]:
+        """
+        Performs a basic check on a site using aiohttp.
+        """
+        site_name = site.name
+        url = site.urlTemplate.format(query=full_name) # Assuming 'query' is the placeholder for full_name
+        if site.urlEncode:
+            from urllib.parse import quote_plus
+            url = site.urlTemplate.format(query=quote_plus(full_name))
+
+        # Use site's headers, fallback to default User-Agent if not specified
+        headers = site.headers if site.headers else {"User-Agent": config.Config.USER_AGENT}
+        
+        # Use site's timeout, fallback to default 45 seconds
+        timeout = site.timeoutSeconds if site.timeoutSeconds else 45
+
+        # Implement retries
+        retries = site.retries if site.retries is not None else 0
+        
+        found = False
+        for attempt in range(retries + 1):
+            try:
+                async with semaphore:
+                    async with session.request(
+                        site.method,
+                        url,
+                        timeout=timeout,
+                        allow_redirects=True,
+                        headers=headers
+                    ) as response:
+                        content = await response.text()
+                        
+                        # Check for noResult
+                        if site.noResult.type == "contains":
+                            found = site.noResult.value.lower() not in content.lower()
+                        elif site.noResult.type == "status_code":
+                            found = response.status != int(site.noResult.value)
+                        else: # Default to checking for 2xx status codes if noResult type is unknown
+                            found = 200 <= response.status < 300
+
+                        # If found, break from retry loop
+                        if found:
+                            break
+                        else:
+                            logger.debug(f"Attempt {attempt + 1} for {site_name}: No result found. Retrying...")
+
+            except (asyncio.TimeoutError, aiohttp.ClientConnectorError, aiohttp.ClientResponseError) as e:
+                logger.warning(f"Attempt {attempt + 1} for {site_name}: Network error - {type(e).__name__}. Retrying...")
+                if attempt == retries:
+                    raise NetworkError(f"Error checking basic site {site_name}: {type(e).__name__}", self.name, e)
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1} for {site_name}: Unexpected error - {type(e).__name__}. Retrying...")
+                if attempt == retries:
+                    raise ScannerError(f"Error checking basic site {site_name}: {type(e).__name__}", self.name, e)
+            finally:
+                self.progress.update(self.task_id, advance=1) # Update progress on each attempt
+
+        return {"name": site_name, "url": url, "found": found, "method": site.method}
+
+    async def _check_site_dynamic(
+        self,
+        context: BrowserContext,
+        full_name: str,
+        site: Site, # Changed site_info to site
+        semaphore: asyncio.Semaphore,
+    ) -> Dict[str, Any]:
+        """
+        Performs a check on a JS-heavy site using a shared browser context.
+        """
+        site_name = site.name
+        url = site.urlTemplate.format(query=full_name) # Assuming 'query' is the placeholder for full_name
+        if site.urlEncode:
+            from urllib.parse import quote_plus
+            url = site.urlTemplate.format(query=quote_plus(full_name))
+
+        # Use site's timeout, fallback to default 45 seconds
+        timeout = site.timeoutSeconds if site.timeoutSeconds else 45
+
+        # Implement retries
+        retries = site.retries if site.retries is not None else 0
+        
+        found = False
+        page = None
+        for attempt in range(retries + 1):
+            try:
+                async with semaphore:
+                    page = await context.new_page()
+                    # Set headers for the page if provided in site config
+                    if site.headers:
+                        await page.set_extra_http_headers(site.headers)
+
+                    await page.route(
+                        "**/*",
+                        lambda route: route.abort()
+                        if route.request.resource_type in {"image", "stylesheet", "font", "media"}
+                        else route.continue_(),
+                    )
+
+                    response = await page.goto(url, timeout=timeout * 1000, wait_until="load") # Playwright timeout is in ms
+
+                    content = await page.content()
+                    status = response.status if response else 0
+
+                    # Check for noResult
+                    if site.noResult.type == "contains":
+                        found = site.noResult.value.lower() not in content.lower()
+                    elif site.noResult.type == "status_code":
+                        found = status != int(site.noResult.value)
+                    else: # Default to checking for 2xx status codes if noResult type is unknown
+                        found = 200 <= status < 300
+
+                    # If found, break from retry loop
+                    if found:
+                        break
+                    else:
+                        logger.debug(f"Attempt {attempt + 1} for {site_name}: No result found. Retrying...")
+
+            except PlaywrightTimeoutError as e:
+                logger.warning(f"Attempt {attempt + 1} for {site_name}: Timeout checking dynamic site - {type(e).__name__}. Retrying...")
+                if attempt == retries:
+                    raise NetworkError(f"Timeout checking dynamic site {site_name}: {type(e).__name__}", self.name, e)
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1} for {site_name}: Unexpected error checking dynamic site - {type(e).__name__}. Retrying...")
+                if attempt == retries:
+                    raise ScannerError(f"Error checking dynamic site {site_name}: {type(e).__name__}", self.name, e)
+            finally:
+                if page:
+                    await page.close()
+                self.progress.update(self.task_id, advance=1) # Update progress on each attempt
+
+        return {"name": site_name, "url": url, "found": found, "method": "DYNAMIC"}

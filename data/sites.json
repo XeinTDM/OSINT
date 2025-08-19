@@ -1,0 +1,556 @@
+{
+  "username_sites": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/{}",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Instagram",
+      "url": "https://www.instagram.com/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": [
+        "Sorry, this page isn't available.",
+        "The link you followed may be broken, or the page may have been removed.",
+        "Page not found"
+      ]
+    },
+    {
+      "name": "Twitter / X",
+      "url": "https://twitter.com/{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "This account doesn’t exist"
+    },
+    {
+      "name": "Reddit",
+      "url": "https://www.reddit.com/user/{}",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "Sorry, nobody on Reddit goes by that name."
+    },
+    {
+      "name": "TikTok",
+      "url": "https://www.tiktok.com/@{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Couldn't find this account"
+    },
+    {
+      "name": "Pinterest",
+      "url": "https://www.pinterest.com/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": [
+        "we can't find that page",
+        "Something went wrong"
+      ]
+    },
+    {
+      "name": "Twitch",
+      "url": "https://www.twitch.tv/{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "that content is unavailable."
+    },
+    {
+      "name": "Steam",
+      "url": "https://steamcommunity.com/id/{}",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "The specified profile could not be found."
+    },
+    {
+      "name": "GitLab",
+      "url": "https://gitlab.com/{}",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Pastebin",
+      "url": "https://pastebin.com/u/{}",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "Not Found (#404)"
+    },
+    {
+      "name": "Stack Overflow",
+      "url": "https://stackoverflow.com/users/{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page Not Found"
+    },
+    {
+      "name": "Codecademy",
+      "url": "https://www.codecademy.com/profiles/{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "This profile could not be found"
+    },
+    {
+      "name": "Roblox",
+      "url": "https://www.roblox.com/user.aspx?username={}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page cannot be found or no longer exists"
+    },
+    {
+      "name": "Medium",
+      "url": "https://medium.com/@{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "HackerNews",
+      "url": "https://news.ycombinator.com/user?id={}",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "No such user."
+    },
+    {
+      "name": "Keybase",
+      "url": "https://keybase.io/{}",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "DeviantArt",
+      "url": "https://www.deviantart.com/{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page Not Found"
+    },
+    {
+      "name": "Vimeo",
+      "url": "https://vimeo.com/{}",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "SoundCloud",
+      "url": "https://soundcloud.com/{}",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "We can't find that user."
+    },
+    {
+      "name": "Flickr",
+      "url": "https://www.flickr.com/people/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "Dribbble",
+      "url": "https://dribbble.com/{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Whoops, that page is gone."
+    },
+    {
+      "name": "Behance",
+      "url": "https://www.behance.net/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page Not Found"
+    },
+    {
+      "name": "About.me",
+      "url": "https://about.me/{}",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Replit",
+      "url": "https://replit.com/@{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "User not found"
+    },
+    {
+      "name": "Last.fm",
+      "url": "https://www.last.fm/user/{}",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "User not found"
+    },
+    {
+      "name": "Quora",
+      "url": "https://www.quora.com/profile/{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page Not Found"
+    },
+    {
+      "name": "LeetCode",
+      "url": "https://leetcode.com/{}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page Not Found"
+    },
+    {
+      "name": "Bandcamp (User)",
+      "url": "https://bandcamp.com/{}",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "Sorry, that page is missing"
+    },
+    {
+      "name": "Bitbucket",
+      "url": "https://bitbucket.org/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "HackerRank",
+      "url": "https://www.hackerrank.com/profile/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Something went wrong"
+    },
+    {
+      "name": "Wellfound (AngelList)",
+      "url": "https://wellfound.com/u/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "500px",
+      "url": "https://500px.com/p/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "This page is gone"
+    },
+    {
+      "name": "SlideShare",
+      "url": "https://www.slideshare.net/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "ArtStation",
+      "url": "https://www.artstation.com/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Bandcamp (Artist)",
+      "url": "https://{}.bandcamp.com/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "itch.io",
+      "url": "https://{}.itch.io/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "SourceForge",
+      "url": "https://sourceforge.net/u/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Telegram",
+      "url": "https://t.me/{}",
+      "checkMethod": "dynamic",
+      "checkType": "positive",
+      "successString": "tgme_page_title"
+    },
+    {
+      "name": "Wattpad",
+      "url": "https://www.wattpad.com/user/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Unable to find user"
+    },
+    {
+      "name": "Newgrounds",
+      "url": "https://{}.newgrounds.com",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "The page you are looking for doesn't exist"
+    },
+    {
+      "name": "Docker Hub",
+      "url": "https://hub.docker.com/u/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "GOG (Good Old Games)",
+      "url": "https://www.gog.com/u/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/User:{}",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "Wikipedia does not have a user page with this exact name"
+    },
+    {
+      "name": "Product Hunt",
+      "url": "https://www.producthunt.com/@{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "We can't find the page you're looking for"
+    },
+    {
+      "name": "Kaggle",
+      "url": "https://www.kaggle.com/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "404 - Not Found"
+    },
+    {
+      "name": "Cash App",
+      "url": "https://cash.app/${}",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Giphy",
+      "url": "https://giphy.com/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "404 - Page Not Found"
+    },
+    {
+      "name": "Facebook",
+      "url": "https://www.facebook.com/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "This content isn't available right now"
+    },
+    {
+      "name": "LinkedIn",
+      "url": "https://www.linkedin.com/in/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Profile not found"
+    },
+    {
+      "name": "YouTube",
+      "url": "https://www.youtube.com/@{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "This channel does not exist."
+    },
+    {
+      "name": "Vimeo",
+      "url": "https://vimeo.com/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Tumblr",
+      "url": "https://{}.tumblr.com",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Foursquare",
+      "url": "https://foursquare.com/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Myspace",
+      "url": "https://myspace.com/{}/",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "Page Not Found"
+    },
+    {
+      "name": "VK",
+      "url": "https://vk.com/{}/",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "User not found"
+    },
+    {
+      "name": "LiveJournal",
+      "url": "https://{}.livejournal.com",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Goodreads",
+      "url": "https://www.goodreads.com/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "Imgur",
+      "url": "https://imgur.com/user/{}/",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "The page you're looking for could not be found."
+    },
+    {
+      "name": "Issuu",
+      "url": "https://issuu.com/{}/",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "Scribd",
+      "url": "https://www.scribd.com/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "Blogger",
+      "url": "https://{}.blogspot.com/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "WordPress",
+      "url": "https://{}.wordpress.com/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "TripAdvisor",
+      "url": "https://www.tripadvisor.com/Profile/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "This page is unavailable"
+    },
+    {
+      "name": "Etsy",
+      "url": "https://www.etsy.com/people/{}/",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "Ebay",
+      "url": "https://www.ebay.com/usr/{}/",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "The User ID you entered was not found"
+    },
+    {
+      "name": "Slack",
+      "url": "https://{}.slack.com",
+      "checkMethod": "basic",
+      "errorType": "string",
+      "errorString": "user not found"
+    },
+    {
+      "name": "Trello",
+      "url": "https://trello.com/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "IFTTT",
+      "url": "https://ifttt.com/p/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Khan Academy",
+      "url": "https://www.khanacademy.org/profile/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "Duolingo",
+      "url": "https://www.duolingo.com/profile/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "Spotify",
+      "url": "https://open.spotify.com/user/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page not found"
+    },
+    {
+      "name": "VRChat",
+      "url": "https://vrchat.com/home/user/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "User not found"
+    },
+    {
+      "name": "Patreon",
+      "url": "https://www.patreon.com/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "GoFundMe",
+      "url": "https://www.gofundme.com/profile/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Page Not Found"
+    },
+    {
+      "name": "Kickstarter",
+      "url": "https://www.kickstarter.com/profile/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Indiegogo",
+      "url": "https://www.indiegogo.com/individuals/{}/",
+      "checkMethod": "basic",
+      "errorType": "status_code"
+    },
+    {
+      "name": "Venmo",
+      "url": "https://account.venmo.com/u/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "user not found"
+    },
+    {
+      "name": "Signal",
+      "url": "https://signal.me/add/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "user not found"
+    },
+    {
+      "name": "Telegram",
+      "url": "https://t.me/{}",
+      "checkMethod": "dynamic",
+      "checkType": "positive",
+      "successString": "tgme_page_title"
+    },
+    {
+      "name": "WhatsApp",
+      "url": "https://api.whatsapp.com/send?phone={}",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Phone number shared via url is invalid."
+    },
+    {
+      "name": "Discord",
+      "url": "https://discord.com/users/{}/",
+      "checkMethod": "dynamic",
+      "errorType": "string",
+      "errorString": "Unknown User"
+    }
+  ]
+}

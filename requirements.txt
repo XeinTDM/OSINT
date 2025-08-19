@@ -1,0 +1,14 @@
+requests
+aiohttp
+aiodns
+dnspython
+python-whois
+rich
+playwright
+tweepy
+questionary
+python-dotenv
+phonenumbers
+ruff
+pytest
+jinja2
