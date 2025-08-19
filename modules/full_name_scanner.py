@@ -25,14 +25,13 @@ class FullNameScanner(BaseScanner):
     NAME: str = "Full Name Scan"
 
     async def scan(self, target: str, **kwargs) -> Dict[str, Any]:
-        full_name = target  # The target parameter contains the full name
+        full_name = target
         first_name = kwargs.get("first_name", "")
         middle_name = kwargs.get("middle_name", "")
         last_name = kwargs.get("last_name", "")
         aliases = kwargs.get("aliases", [])
         country = kwargs.get("country", "")
 
-        # If only full_name is provided, try to split it into components
         if full_name and not (first_name or last_name):
             name_parts = full_name.strip().split()
             if len(name_parts) >= 2:
@@ -54,7 +53,6 @@ class FullNameScanner(BaseScanner):
 
         if not country_sites:
             self.progress.update(self.task_id, description=f"[bold red]No full name sites found for {country}.[/bold red]")
-            # Debug: Check what countries are available
             all_countries = [cs.country for cs in self.sites_manager._full_name_sites_data]
             logger.warning(f"No sites found for country '{country}'. Available countries: {all_countries}")
             return results
@@ -175,7 +173,6 @@ class FullNameScanner(BaseScanner):
                             else:
                                 found = 200 <= response.status < 300
                         else:
-                            # Default behavior if noResult is not configured
                             found = 200 <= response.status < 300
 
                         if found:
@@ -243,7 +240,6 @@ class FullNameScanner(BaseScanner):
                         else:
                             found = 200 <= status < 300
                     else:
-                        # Default behavior if noResult is not configured
                         found = 200 <= status < 300
 
                     if found:

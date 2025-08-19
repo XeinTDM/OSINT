@@ -85,20 +85,16 @@ class UsernameScanner(BaseScanner):
 
         async with semaphore:
             try:
-                # Handle custom checks
                 if hasattr(site, 'customCheck') and site.customCheck:
                     return await self._handle_custom_check(session, site, username)
                 
                 headers = {"User-Agent": config.Config.USER_AGENT}
-                # Use custom headers if provided
                 if hasattr(site, 'headers') and site.headers:
                     headers.update(site.headers)
                 
-                # Use custom HTTP method if provided
                 method = getattr(site, 'method', 'GET').upper()
                 
                 if method == 'POST':
-                    # For POST requests, send empty JSON body
                     async with session.post(url, json={}, timeout=45, allow_redirects=True, headers=headers) as response:
                         return await self._process_response(response, site, url, username)
                 else:
@@ -120,22 +116,17 @@ class UsernameScanner(BaseScanner):
         if site.customCheck == "discord_api":
             return await self._check_discord_api(session, site, username)
         else:
-            # Fallback to basic check for unknown custom checks
             return {"name": site.name, "url": site.urlTemplate, "found": False, "method": CheckMethods.BASIC.value, "error": "Unknown custom check"}
 
     async def _check_discord_api(self, session: aiohttp.ClientSession, site: Site, username: str) -> Dict[str, Any]:
         """Check Discord user existence using their API."""
         try:
-            # Discord API endpoint for checking user relationships
             url = "https://discord.com/api/v9/users/@me/relationships"
             
-            # Discord requires authentication, but we can try to check if the user exists
-            # by attempting to access their profile page
             profile_url = f"https://discord.com/users/{username}"
             
             headers = {"User-Agent": config.Config.USER_AGENT}
             async with session.get(profile_url, timeout=45, headers=headers) as response:
-                # Discord returns 200 for existing users, 404 for non-existent
                 found = response.status == 200
                 
                 return {
@@ -155,10 +146,8 @@ class UsernameScanner(BaseScanner):
         
         found = False
         if error_type == ErrorTypes.STATUS_CODE:
-            # For status code checks, also verify the content doesn't contain error indicators
             if 200 <= response.status < 300:
                 content = await response.text()
-                # Check if content contains common error indicators even with 200 status
                 error_indicators = [
                     "not found", "doesn't exist", "user not found", "profile not found",
                     "page not found", "404", "no such user", "could not find",
@@ -173,7 +162,6 @@ class UsernameScanner(BaseScanner):
             is_success_status = 200 <= response.status < 300
             found = is_success_status and not any(err.lower() in content.lower() for err in error_list)
         else:
-            # Default case: check both status and content
             if 200 <= response.status < 300:
                 content = await response.text()
                 error_indicators = [
@@ -234,9 +222,7 @@ class UsernameScanner(BaseScanner):
                 else:
                     error_type = site.errorType
                     if error_type == ErrorTypes.STATUS_CODE:
-                        # For status code checks, also verify the content doesn't contain error indicators
                         if 200 <= status < 300:
-                            # Check if content contains common error indicators even with 200 status
                             error_indicators = [
                                 "not found", "doesn't exist", "user not found", "profile not found",
                                 "page not found", "404", "no such user", "could not find",
@@ -250,13 +236,11 @@ class UsernameScanner(BaseScanner):
                         status = response.status if response else 0
                         is_success_status = 200 <= status < 300
                         if is_success_status:
-                            # Even with success status, check for error indicators in content
                             error_indicators = [
                                 "not found", "doesn't exist", "user not found", "profile not found",
                                 "page not found", "404", "no such user", "could not find"
                             ]
                             found = not any(indicator in content.lower() for indicator in error_indicators)
-                            # Also check the site-specific error strings
                             found = found and not any(err.lower() in content.lower() for err in error_list)
                         else:
                             found = False
